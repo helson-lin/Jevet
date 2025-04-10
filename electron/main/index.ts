@@ -3,7 +3,9 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import os from "node:os";
+import fs from 'node:fs'
 import sharp from "sharp";
+import * as png2icns from "png2icons";
 interface IMG_ITEM {
   buffer: ArrayBuffer;
   uid: string;
@@ -50,6 +52,8 @@ const indexHtml = path.join(RENDERER_DIST, "index.html");
 async function createWindow() {
   win = new BrowserWindow({
     title: "Main window",
+    width: 800,
+    height: 450,
     icon: path.join(process.env.VITE_PUBLIC, "favicon.ico"),
     webPreferences: {
       preload,
@@ -125,6 +129,22 @@ ipcMain.handle("open-win", (_, arg) => {
   }
 });
 
+ipcMain.handle('moveToDownloads', async (event, tempFilePath) => {
+  try {
+      // 获取用户的下载目录
+      const downloadsPath = path.join(os.homedir(), 'Downloads', path.basename(tempFilePath));
+      
+      // 移动文件
+      await fs.promises.rename(tempFilePath, downloadsPath);
+      
+      return { success: true, downloadsPath };
+  } catch (err) {
+      console.error('Failed to move file:', err);
+      return { success: false, error: err.message };
+  }
+});
+
+
 ipcMain.handle(
   "pi",
   async (
@@ -137,6 +157,7 @@ ipcMain.handle(
         resizeOption?: sharp.ResizeOptions;
         keepExif?: boolean; // 是否保留Exif
         exif: sharp.Exif;
+        quality: number;
         outputformat:
           | "png"
           | "jpg"
@@ -145,21 +166,24 @@ ipcMain.handle(
           | "gif"
           | "jp2"
           | "tiff"
-          | "heif";
+          | "heif"
+          | "icns";
       };
     }
   ) => {
     try {
       console.log('🚀')
+      const qualityDisabled = ['gif']
       const imgs = arg.imgs;
       const options = arg.options;
       const processingPromises = imgs.map(async (imgItem) => {
+
         const tempDir = os.tmpdir();
-        const outputPath = path.join(
+        let outputPath = path.join(
           tempDir,
           `resized-${Date.now()}-${Math.random()
             .toString(36)
-            .substring(2, 8)}.png`
+            .substring(2, 8)}.${options.outputformat}`
         );
 
         let sharper = sharp(imgItem.buffer);
@@ -176,26 +200,53 @@ ipcMain.handle(
           sharper = sharper.withExif(options.exif);
         }
         if (options.outputformat) {
+          const baseOptions = {quality: options.quality || 100}
           switch (options.outputformat) {
             case "png":
-              sharper = sharper.png();
+              sharper = sharper.png(baseOptions);
               break;
             case "webp":
-              sharper = sharper.webp({lossless: true});
+              sharper = sharper.webp({lossless: true, ...baseOptions});
               break;
             case "jpeg":
-              sharper = sharper.jpeg();
+              sharper = sharper.jpeg(baseOptions);
               break;
             case "jp2":
-              sharper = sharper.jp2();
+              sharper = sharper.jp2(baseOptions);
               break;
             case "tiff":
-              sharper = sharper.tiff();
+              sharper = sharper.tiff(baseOptions);
             case "gif":
               sharper = sharper.gif();
               break;
             case "heif":
-              sharper = sharper.heif();
+              sharper = sharper.heif(baseOptions);
+              break;
+            case "icns":
+                sharper = sharper.resize({
+                  width: 1024,
+                  height: 1024,
+                  fit: 'contain',
+                  background: { r: 0, g: 0, b: 0, alpha: 0 },
+                })
+                .composite([
+                  // rx ry是圆角半径
+                  {
+                      input: Buffer.from(
+                          `<svg>
+                            <rect x="0" y="0" width="1024" height="1024" rx="250" ry="250" />
+                          </svg>`
+                      ),
+                      blend: 'dest-in',
+                  }
+                ])      
+                .extend({
+                  top: 120,
+                  bottom: 120,
+                  left: 120,
+                  right: 120,
+                  background: { r: 0, g: 0, b: 0, alpha: 0 },
+              })    
               break;
             default:
               break;
@@ -203,7 +254,15 @@ ipcMain.handle(
         }
         await sharper.toFile(outputPath);
 
-        const imageBuffer = await sharp(outputPath).toBuffer();
+        let imageBuffer;
+        if (options.outputformat === 'icns') {
+          const iconBuffer = fs.readFileSync(outputPath)
+          imageBuffer = png2icns.createICNS(iconBuffer, 1, 0)
+          // outputPath重写
+          fs.writeFileSync(outputPath, imageBuffer)
+        }else {
+          imageBuffer = await sharp(outputPath).toBuffer();
+        }
         return {
           uid: imgItem.uid,
           outputPath,

@@ -27,7 +27,7 @@ function getBase64(img: Blob, callback: (base64Url: string) => void) {
   reader.readAsDataURL(img);
 }
 
-const beforeUpload = (file: UploadProps['fileList'][number]) => {
+const beforeUpload = (file: any) => {
   const isJpgOrPng = file.type.startsWith('image')
   if (!isJpgOrPng) {
     message.error('You can only upload image file!');

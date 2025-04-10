@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AButton: typeof import('ant-design-vue/es')['Button']
+    AConfigProvider: typeof import('ant-design-vue/es')['ConfigProvider']
     AImage: typeof import('ant-design-vue/es')['Image']
     AInputNumber: typeof import('ant-design-vue/es')['InputNumber']
     ASelect: typeof import('ant-design-vue/es')['Select']
@@ -16,9 +17,7 @@ declare module 'vue' {
     ASpin: typeof import('ant-design-vue/es')['Spin']
     ASwitch: typeof import('ant-design-vue/es')['Switch']
     ATag: typeof import('ant-design-vue/es')['Tag']
-    AUpload: typeof import('ant-design-vue/es')['Upload']
     AUploadDragger: typeof import('ant-design-vue/es')['UploadDragger']
-    HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
     Upload: typeof import('./src/components/Upload.vue')['default']
   }
 }
