@@ -58,20 +58,74 @@ const safeDOM = {
  * https://matejkustec.github.io/SpinThatShit
  */
 function useLoading() {
-  const className = `loaders-css__square-spin`
   const styleContent = `
-@keyframes square-spin {
-  25% { transform: perspective(100px) rotateX(180deg) rotateY(0); }
-  50% { transform: perspective(100px) rotateX(180deg) rotateY(180deg); }
-  75% { transform: perspective(100px) rotateX(0) rotateY(180deg); }
-  100% { transform: perspective(100px) rotateX(0) rotateY(0); }
+html, body { height: 100%; }
+
+body {
+   display: flex;
+   align-items: center;
+   justify-content: center;
 }
-.${className} > div {
-  animation-fill-mode: both;
-  width: 50px;
-  height: 50px;
-  background: #fff;
-  animation: square-spin 3s 0s cubic-bezier(0.09, 0.57, 0.49, 0.9) infinite;
+// This is just to center the spinner
+
+html, body { height: 100%; }
+
+body {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+}
+
+.spinner {
+  animation: rotator 1.4s linear infinite;
+}
+
+@keyframes rotator {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(270deg);
+  }
+}
+
+.path {
+  stroke-dasharray: 187;
+  stroke-dashoffset: 0;
+  transform-origin: center;
+  animation: dash 1.4s ease-in-out infinite, colors 5.6s ease-in-out infinite;
+}
+
+@keyframes colors {
+  0% {
+    stroke: #4285F4;
+  }
+  25% {
+    stroke: #DE3E35;
+  }
+  50% {
+    stroke: #F7C223;
+  }
+  75% {
+    stroke: #1B9A59;
+  }
+  100% {
+    stroke: #4285F4;
+  }
+}
+
+@keyframes dash {
+  0% {
+    stroke-dashoffset: 187;
+  }
+  50% {
+    stroke-dashoffset: 46.75;
+    transform: rotate(135deg);
+  }
+  100% {
+    stroke-dashoffset: 187;
+    transform: rotate(450deg);
+  }
 }
 .app-loading-wrap {
   position: fixed;
@@ -82,7 +136,7 @@ function useLoading() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #282c34;
+  background: #efefef;
   z-index: 9;
 }
     `
@@ -92,7 +146,10 @@ function useLoading() {
   oStyle.id = 'app-loading-style'
   oStyle.innerHTML = styleContent
   oDiv.className = 'app-loading-wrap'
-  oDiv.innerHTML = `<div class="${className}"><div></div></div>`
+  oDiv.innerHTML = `
+  <svg class="spinner" width="40px" height="40px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+   <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+</svg>`
 
   return {
     appendLoading() {
