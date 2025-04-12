@@ -1,20 +1,43 @@
 // @see https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "YourAppID",
+  "appId": "com.helson-lin.jevet",
   "asar": true,
-  "productName": "YourAppName",
+  "asarUnpack": [
+    "**/node_modules/sharp/**/*",
+    "**/node_modules/png2icons/**/*"
+  ],
+  "extraResources": [
+      {
+        "from": "node_modules/sharp/",
+        "to": "node_modules/sharp/"
+      }
+  ],
+  "productName": "Jevet",
   "directories": {
     "output": "release/${version}"
   },
   "files": [
-    "dist",
-    "dist-electron"
+    "node_modules/sharp/**/*",
+    "node_modules/png2icons/**/*",
+    "!node_modules/sharp/{docs,vendor}/**/*",
+    "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+    "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+    "!**/node_modules/*.d.ts",
+    "!**/node_modules/.bin",
+    "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+    "!.editorconfig",
+    "!**/._*",
+    "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+    "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+    "!**/{appveyor.yml,.travis.yml,circle.yml}",
+    "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
   ],
   "mac": {
     "target": [
       "dmg"
     ],
+    "icon": "src/icon/mac.icns",
     "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
   },
   "win": {

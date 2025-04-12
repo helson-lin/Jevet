@@ -1,8 +1,10 @@
 <script lang="ts" setup>
 import { ref, computed, defineEmits, defineProps } from "vue";
-import { Upload, message } from "ant-design-vue";
+import { message } from "ant-design-vue";
 import type { UploadChangeParam, UploadProps } from 'ant-design-vue';
 import { PlusOutlined, LoadingOutlined } from "@ant-design/icons-vue";
+import {  Upload } from '@icon-park/vue-next'
+
 const props = defineProps({
     list: {
         type: Array,
@@ -20,12 +22,6 @@ const fileList = computed({
  }
 });
 const loading = ref<boolean>(false);
-
-function getBase64(img: Blob, callback: (base64Url: string) => void) {
-  const reader = new FileReader();
-  reader.addEventListener('load', () => callback(reader.result as string));
-  reader.readAsDataURL(img);
-}
 
 const beforeUpload = (file: any) => {
   const isJpgOrPng = file.type.startsWith('image')
@@ -48,13 +44,14 @@ const beforeUpload = (file: any) => {
     <a-upload-dragger
       v-model:file-list="fileList"
       :show-upload-list="false"
+      accept="image/*" 
       :multiple="true"
       :before-upload="beforeUpload"
     >
       <div class="w-full h-48 flex flex-col items-center justify-center">
         <loading-outlined v-if="loading"></loading-outlined>
-        <plus-outlined v-else class="text-lg"></plus-outlined>
-        <div class="ant-upload-text">Upload</div>
+        <upload v-else theme="outline" size="40" fill="#333" strokeLinejoin="bevel" strokeLinecap="square"/>
+        <div class="ant-upload-text mt-4">拖拽文件到这里或者点击上传</div>
       </div>
     </a-upload-dragger>
   </div>

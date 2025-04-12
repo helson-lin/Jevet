@@ -52,8 +52,8 @@ const indexHtml = path.join(RENDERER_DIST, "index.html");
 async function createWindow() {
   win = new BrowserWindow({
     title: "Main window",
-    width: 800,
-    height: 450,
+    width: 850,
+    height: 500,
     icon: path.join(process.env.VITE_PUBLIC, "favicon.ico"),
     webPreferences: {
       preload,
@@ -118,29 +118,43 @@ ipcMain.handle("open-win", (_, arg) => {
     webPreferences: {
       preload,
       nodeIntegration: true,
-      contextIsolation: false,
+      contextIsolation: true,
     },
   });
-
+  console.log(`🚀 ${VITE_DEV_SERVER_URL}#/${arg}`)
   if (VITE_DEV_SERVER_URL) {
-    childWindow.loadURL(`${VITE_DEV_SERVER_URL}#${arg}`);
+    childWindow.loadURL(`${VITE_DEV_SERVER_URL}/#/${arg}`);
   } else {
     childWindow.loadFile(indexHtml, { hash: arg });
   }
 });
 
-ipcMain.handle('moveToDownloads', async (event, tempFilePath) => {
+ipcMain.handle('moveToDownloads', async (event, tempFilePaths) => {
   try {
-      // 获取用户的下载目录
-      const downloadsPath = path.join(os.homedir(), 'Downloads', path.basename(tempFilePath));
-      
-      // 移动文件
-      await fs.promises.rename(tempFilePath, downloadsPath);
-      
-      return { success: true, downloadsPath };
+    // 支持单文件路径或文件路径数组
+    const files = Array.isArray(tempFilePaths) ? tempFilePaths : [tempFilePaths];
+    
+    const movePromises = files.map(async (filePath) => {
+      const downloadsPath = path.join(os.homedir(), 'Downloads', path.basename(filePath));
+      await fs.promises.rename(filePath, downloadsPath);
+      return downloadsPath;
+    });
+
+    const results = await Promise.all(movePromises);
+    
+    return { 
+      success: true, 
+      downloadsPaths: results,
+      message: `成功移动了${results.length}个文件到下载目录`
+    };
   } catch (err) {
-      console.error('Failed to move file:', err);
-      return { success: false, error: err.message };
+    console.error('Failed to move files:', err);
+    return { 
+      success: false, 
+      error: err.message,
+      // 返回部分成功的结果
+      partialResults: err.partialResults || [] 
+    };
   }
 });
 
@@ -167,7 +181,8 @@ ipcMain.handle(
           | "jp2"
           | "tiff"
           | "heif"
-          | "icns";
+          | "icns"
+          | "ico";
       };
     }
   ) => {
@@ -203,10 +218,10 @@ ipcMain.handle(
           const baseOptions = {quality: options.quality || 100}
           switch (options.outputformat) {
             case "png":
-              sharper = sharper.png(baseOptions);
+              sharper = sharper.png({ ...baseOptions, effort: 6, palette: true });
               break;
             case "webp":
-              sharper = sharper.webp({lossless: true, ...baseOptions});
+              sharper = sharper.webp({ effort: 6,  ...baseOptions});
               break;
             case "jpeg":
               sharper = sharper.jpeg(baseOptions);
@@ -217,10 +232,10 @@ ipcMain.handle(
             case "tiff":
               sharper = sharper.tiff(baseOptions);
             case "gif":
-              sharper = sharper.gif();
+              sharper = sharper.gif({ effort: 6 });
               break;
             case "heif":
-              sharper = sharper.heif(baseOptions);
+              sharper = sharper.heif({ ...baseOptions, effort: 6, });
               break;
             case "icns":
                 sharper = sharper.resize({
@@ -248,6 +263,14 @@ ipcMain.handle(
                   background: { r: 0, g: 0, b: 0, alpha: 0 },
               })    
               break;
+            case 'ico':
+              sharper = sharper.resize({
+                width: 1024,
+                height: 1024,
+                fit: 'contain',
+                background: { r: 0, g: 0, b: 0, alpha: 0 },
+              })
+              break;
             default:
               break;
           }
@@ -260,12 +283,22 @@ ipcMain.handle(
           imageBuffer = png2icns.createICNS(iconBuffer, 1, 0)
           // outputPath重写
           fs.writeFileSync(outputPath, imageBuffer)
-        }else {
+        }else if (options.outputformat === 'ico') {
+          const iconBuffer = fs.readFileSync(outputPath)
+          imageBuffer = png2icns.createICO(iconBuffer, png2icns.BEZIER, 20, true)
+          // outputPath重写
+          fs.writeFileSync(outputPath, imageBuffer)
+        }  else {
           imageBuffer = await sharp(outputPath).toBuffer();
         }
+
+        // 获取文件大小
+        const stats = fs.statSync(outputPath);
+        const fileSizeInBytes = stats.size;
         return {
           uid: imgItem.uid,
           outputPath,
+          fileSize: fileSizeInBytes,
           base64Image: `data:image/${options.outputformat};base64,${imageBuffer.toString(
             "base64"
           )}`,
