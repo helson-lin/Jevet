@@ -22,8 +22,9 @@
   "scripts": {
     "postinstall": "electron-builder install-app-deps",
     "dev": "vite",
+    "app:dir": "electron-builder --dir",
+    "app:dist": "vue-tsc --noEmit && vite build && electron-builder",
     "rebuild": "electron-rebuild",
-    "build": "vue-tsc --noEmit && vite build && electron-builder",
     "preview": "vite preview",
     "sharp:mac": "del-cli ./node_modules/sharp && npm install --platform=darwin --arch=arm64 sharp"
   },
