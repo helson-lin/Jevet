@@ -26,7 +26,8 @@
     "app:dist": "vue-tsc --noEmit && vite build && electron-builder",
     "rebuild": "electron-rebuild",
     "preview": "vite preview",
-    "sharp:mac": "del-cli ./node_modules/sharp && npm install --platform=darwin --arch=arm64 sharp"
+    "sharp:mac": "del-cli ./node_modules/sharp && npm install --platform=darwin --arch=arm64 sharp",
+    "sharp:linux": "del-cli./node_modules/sharp && npm install --platform=linux --arch=x64 sharp"
   },
   "devDependencies": {
     "@electron/fuses": "^1.8.0",
