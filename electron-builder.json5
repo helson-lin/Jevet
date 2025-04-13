@@ -53,6 +53,7 @@
         ]
       }
     ],
+    "icon": "src/icon/mac.ico",
     "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
   },
   "nsis": {
