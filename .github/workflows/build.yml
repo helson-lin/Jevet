@@ -39,7 +39,7 @@ jobs:
         run: npm run sharp:mac
 
       - name: Build Release Files
-        run: npm run build
+        run: npm run app:dist
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
 
