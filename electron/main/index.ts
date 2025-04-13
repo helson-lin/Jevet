@@ -5,7 +5,7 @@ import path from "node:path";
 import os from "node:os";
 import fs from 'node:fs'
 import sharp from "sharp";
-import * as png2icns from "png2icons";
+import  png2icns from "png2icons";
 interface IMG_ITEM {
   buffer: ArrayBuffer;
   uid: string;
