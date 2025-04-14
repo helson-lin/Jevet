@@ -9,7 +9,7 @@ import './demos/ipc'
 
 const app = createApp(App)
 app.use(router)
-app .mount('#app')
+app.mount('#app')
   .$nextTick(() => {
     postMessage({ payload: 'removeLoading' }, '*')
   })

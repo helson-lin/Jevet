@@ -8,10 +8,10 @@
     "**/node_modules/png2icons/**/*"
   ],
   "extraResources": [
-      {
+    {
         "from": "node_modules/sharp/",
         "to": "node_modules/sharp/"
-      }
+    }
   ],
   "productName": "Jevet",
   "directories": {

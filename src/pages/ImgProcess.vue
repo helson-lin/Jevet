@@ -528,11 +528,9 @@ const processIMG = async () => {
       </div>
       <div class="flex w-full py-2 shadow justify-between px-2">
         <a-button class="ml-2" @click="processIMG" type="primary"
-          >批量处理</a-button
-        >
+          >批量处理</a-button>
         <a-button class="ml-2" @click="exportAll" type="primary"
-          >全部导出</a-button
-        >
+          >全部导出</a-button>
       </div>
     </div>
   </div>
