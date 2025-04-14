@@ -26,7 +26,7 @@ export default defineComponent({
                 name: "智能抠图",
                 icon: "cutting-one",
                 desc: "一键抠除背景，支持人物、物品等多种场景",
-                path: '/img'
+                path: '/removeBg'
             },
             {
                 name: "AI 扩图",
