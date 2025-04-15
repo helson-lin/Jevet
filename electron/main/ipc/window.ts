@@ -8,7 +8,10 @@ export function setupWindowHandlers(preload: string, indexHtml: string) {
         preload,
         nodeIntegration: true,
         contextIsolation: true,
+        webSecurity: false,  // 允许加载本地资源
       },
+      width: 800,
+      height: 600
     });
     
     if (VITE_DEV_SERVER_URL) {

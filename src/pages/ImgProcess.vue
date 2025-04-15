@@ -207,9 +207,9 @@ const handleChange: SelectProps["onChange"] = (value) => {
 };
 
 const previewImg = (item: PROCESED_ITEM) => {
-  const allResouces = previewList.value.map((item) => item.preview).join(",");
+  const allResouces = previewList.value.map((item) => item.outputPath).join(",");
   localStorage.setItem("allResouces", allResouces);
-  window.ipcRenderer.invoke("open-win", `preview?url=${item.preview}`);
+  window.ipcRenderer.invoke("open-win", `preview?url=${item.outputPath}`);
 };
 
 const exportIMG = (filePath: string) => {
@@ -243,7 +243,6 @@ const processSingleIMG = async (item: PROCESED_ITEM) => {
   const bufferData = await item.file.arrayBuffer();
   fileBuffers.push({ buffer: bufferData, uid: item.uid });
   try {
-    console.log("🚀", options.value, fileBuffers);
     const optionsCloned = JSON.parse(JSON.stringify(options.value));
     window.ipcRenderer
       .invoke("pi", {
@@ -312,7 +311,6 @@ const processIMG = async () => {
   }
   loading.value = true;
   try {
-    console.log("🚀", options.value, fileBuffers);
     const optionsCloned = JSON.parse(JSON.stringify(options.value));
     window.ipcRenderer
       .invoke("pi", {

@@ -9,15 +9,13 @@ onMounted(() => {
     if (!data) return;
     const list = data.split(',')
     previewList.value = list as string[]
-    console.log(list)
 })
 // 设置显示隐藏
 const setVisible = () => {}
 </script>
 <template>
     <div class="w-full h-full">
-        {{previewList.length}}
-        <a-image :src="previewURL" :style="{ display: 'none' }"
+        <a-image :src="`file://${previewURL}`" :style="{ display: 'none' }"
         :preview="{
             visible: true,
             onVisibleChange: setVisible,

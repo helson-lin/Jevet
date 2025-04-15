@@ -25,10 +25,11 @@ async function createWindow() {
   win = new BrowserWindow({
     title: "Main window",
     width: 850,
-    height: 580,
+    height: 600,
     icon: path.join(PUBLIC_DIR, "favicon.ico"),
     webPreferences: {
       preload,
+      webSecurity: false,
     },
   });
 
@@ -49,12 +50,18 @@ async function createWindow() {
   });
 }
 
-// 设置所有 IPC 处理程序
-setupWindowHandlers(preload, indexHtml);
-setupFileHandlers();
-setupImageHandlers();
+app.whenReady().then(() => {
+  createWindow();
 
-app.whenReady().then(createWindow);
+  // 设置所有 IPC 处理程序
+  setupWindowHandlers(preload, indexHtml);
+  setupFileHandlers();
+  setupImageHandlers();
+
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
 
 app.on("window-all-closed", () => {
   win = null;
@@ -65,14 +72,5 @@ app.on("second-instance", () => {
   if (win) {
     if (win.isMinimized()) win.restore();
     win.focus();
-  }
-});
-
-app.on("activate", () => {
-  const allWindows = BrowserWindow.getAllWindows();
-  if (allWindows.length) {
-    allWindows[0].focus();
-  } else {
-    createWindow();
   }
 });
