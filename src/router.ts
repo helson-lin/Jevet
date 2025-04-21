@@ -3,6 +3,7 @@ import Home from './pages/Home.vue'
 import ImgProcess from './pages/ImgProcess.vue'
 import ImgRemoveBg from './pages/ImgRemoveBg.vue'
 import Preview from './pages/Preview.vue'
+import Setting from './pages/Setting.vue'
 const routes = [
     {
       path: '/',
@@ -23,6 +24,11 @@ const routes = [
       path: '/preview',
       name: 'Preview',
       component: Preview
+    },
+    {
+      path: '/setting',
+      name: 'Setting',
+      component: Setting,
     }
   ]
   const router = createRouter({

@@ -6,6 +6,7 @@ import sharp from 'sharp';
 import * as png2icns from 'png2icons';
 import * as ort from 'onnxruntime-node'
 import { processBEN2 } from './ben2';
+import { MODEL_OPTION, type ModelOptionItem } from './config/index'
 
 interface IMG_ITEM {
   buffer: ArrayBuffer;
@@ -23,6 +24,7 @@ interface ImageProcessOptions {
 }
 
 export function setupImageHandlers() {
+  //  实现图片转码
   ipcMain.handle("pi", async (_, arg: { imgs: IMG_ITEM[]; options?: ImageProcessOptions }) => {
     try {
       const { imgs, options } = arg;
@@ -166,115 +168,149 @@ async function processSpecialFormats(outputPath: string, format: string): Promis
   }
 } 
 
+// 获取模型的配置
+function getModelOption (modelName): ModelOptionItem {
+  if (MODEL_OPTION[modelName]) {
+      return MODEL_OPTION[modelName]
+  } else {
+      return {
+          width: 320,
+          height: 320,
+          feedInput: 'input.1'
+      }
+  }
+}
 
-async function removeBg(inputBuffer: Buffer, options: {
-  outputformat: string;
-  model: string;
-  uid: string;
-}, modelPath = path.join(process.cwd(), 'model/u2net.onnx')) {
-  const tempDir = os.tmpdir();
-  let outputPath = path.join(
-    tempDir,
-    `removebg-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${options.outputformat}`
-  );
+// 实现抠图
+async function removeBg(
+  inputBuffer: Buffer,
+  inputOptions:  {
+    outputformat: string;
+    model: string;
+    uid: string;
+  }) {
+  try {
+    // 临时文件目录
+    const tempDir = os.tmpdir();
+    // 输出文件的格式
+    let outputPath = path.join(
+      tempDir,
+      `removebg-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${inputOptions.outputformat}`
+    );
     // 1. 加载 ONNX 模型
-    const session = await ort.InferenceSession.create(path.join(process.cwd(), `model/${options.model}.onnx`) ?? modelPath, {
-        executionProviders: [
-            'cuda', // 优先用 GPU
-            'cpu'   // 如果 GPU 不可用，回退到 CPU
-        ]
-    });
-    let outputBuffer, width, height;
-    if (options.model === 'BEN2_Base') {
-      const data = await processBEN2(inputBuffer, session)
-      outputBuffer = data.buffer
-      width = data.height
-      height = data.height
-    } else {
-      // 2. 预处理图像（resize + normalize）
-      const { data } = await sharp(inputBuffer)
-          .resize(320, 320)  // 必须和模型输入尺寸一致！
-          .raw()
-          .toBuffer({ resolveWithObject: true });
-  
-      // 转换为 [N,C,H,W] 格式的归一化 Float32Array
-      const inputData = new Float32Array(3 * 320 * 320);
-      for (let i = 0; i < data.length; i += 4) { // RGBA 格式
-          const pixel = i / 4;
-          inputData[pixel] = (data[i] / 255 - 0.485) / 0.229;     // R (ImageNet Norm)
-          inputData[pixel + 320 * 320] = (data[i + 1] / 255 - 0.456) / 0.224; // G
-          inputData[pixel + 2 * 320 * 320] = (data[i + 2] / 255 - 0.406) / 0.225; // B
-      }
-  
-      // 3. 创建 ONNX 张量输入
-      const tensor = new ort.Tensor('float32', inputData, [1, 3, 320, 320]);
-      const feeds = { [session.inputNames[0]]: tensor };
-  
-      // 4. 运行推理
-      const results = await session.run(feeds);
-      const maskData = results[session.outputNames[0]].data; // 获取输出张量
-      // 5. 生成 Alpha 掩码（0-255）
-      const alphaMask = new Uint8Array(Array.from(maskData as Float32Array).map((v: number) => v > 0.5 ? 255 : 0));
-  
-      // 6. 应用掩码至原图（生成透明 PNG）
-      const original = await sharp(inputBuffer)
-          .ensureAlpha() // 添加 Alpha 通道
-          .raw()
-          .toBuffer({ resolveWithObject: true });
-  
-      outputBuffer = Buffer.alloc(original.data.length);
-      width = original.info.width
-      height =  original.info.height
-      for (let i = 0; i < original.data.length; i += 4) {
-          const x = Math.floor((i / 4) % original.info.width * (320 / original.info.width));
-          const y = Math.floor((i / 4 / original.info.width) * (320 / original.info.height));
-          const maskValue = alphaMask[y * 320 + x];
-  
-          outputBuffer[i] = original.data[i];     // R
-          outputBuffer[i + 1] = original.data[i + 1]; // G
-          outputBuffer[i + 2] = original.data[i + 2]; // B
-          outputBuffer[i + 3] = maskValue;       // A (0=透明, 255=不透明)
-      }
-      // 7. 保存原始大小的图片
-      await sharp(outputBuffer, {
-          raw: {
-              width,
-              height,
-              channels: 4
-          }
-      })
-      .toFormat(options.outputformat as keyof sharp.FormatEnum)
-      .toFile(outputPath);
+    const modelPath = path.join(process.cwd(), `model/${inputOptions.model || 'u2net'}.onnx`);
+    const session = await ort.InferenceSession.create(modelPath);
+    console.log("模型加载完成");
+    // 获取模型的名称
+    const filename = path.basename(modelPath); // 返回 'my_file.txt'
+    // 通过模型的名称获取模型的配置信息
+    const options = getModelOption(filename);
+    // 2. 读取图像并调整大小
+    const imageBuffer = await sharp(inputBuffer)
+    .resize(options.width, options.height)
+    .raw() // 获取原始像素数据
+    .toBuffer({ resolveWithObject: true });
+    const { data, info } = imageBuffer;
+    const { width, height, channels } = info;
+
+    // 3. 检查通道数
+    if (channels !== 3) {
+        throw new Error(`Expected 3 channels (RGB), but got ${channels}`);
     }
 
-    // 生成一个较小的预览图
-    const previewBuffer = await sharp(outputBuffer, {
-        raw: {
-            width,
-            height,
-            channels: 4
+    // 4. 预处理图像数据
+    const floatArr = new Float32Array(width * height * 3);
+    let j = 0;
+    for (let i = 0; i < data.length; i++) {
+        floatArr[j++] = data[i] / 255;
+    }
+
+    const floatArr1 = new Float32Array(width * height * 3);
+    for (let i = 0; i < floatArr.length; i += 3) {
+        floatArr1[i] = (floatArr[i] - 0.485) / 0.229;
+        floatArr1[i + 1] = (floatArr[i + 1] - 0.456) / 0.224;
+        floatArr1[i + 2] = (floatArr[i + 2] - 0.406) / 0.225;
+    }
+
+    const floatArr2 = new Float32Array(width * height * 3);
+    let k = 0;
+    for (let i = 0; i < floatArr.length; i += 3) {
+        floatArr2[k++] = floatArr[i];
+    }
+
+    let l = width * height;
+    for (let i = 1; i < floatArr.length; i += 3) {
+        floatArr2[l++] = floatArr[i];
+    }
+
+    let m = 2 * width * height;
+    for (let i = 2; i < floatArr.length; i += 3) {
+        floatArr2[m++] = floatArr[i];
+    }
+
+    // 5. 创建 ONNX 输入
+    const input = new ort.Tensor('float32', floatArr2, [1, 3, width, height]);
+    const feeds = { };
+    feeds[options.feedInput] = input
+    // 6. 运行 ONNX 模型
+    const results = await session.run(feeds);
+    const pred: any = results[session.outputNames[0]].data;
+
+    // 7. 后处理结果
+    const outputBuffer = new Uint8Array(width * height * 4); // RGBA，用于输出灰度图
+    const cutoutBuffer = new Uint8Array(width * height * 4); // RGBA，用于抠图结果
+
+    for (let i = 0; i < pred.length; i++) {
+        const value = Math.round(pred[i] * 255); // 将预测值缩放到 0-255 范围
+        const index = i * 4;
+
+        // 创建灰度图
+        outputBuffer[index] = value;       // R
+        outputBuffer[index + 1] = value;   // G
+        outputBuffer[index + 2] = value;   // B
+        outputBuffer[index + 3] = 255;     // A
+
+        // 创建抠图结果
+        // 如果预测值大于某个阈值，则认为是前景，保留原始颜色，否则设为透明
+        const threshold = 128;  // 可以根据需要调整阈值
+        if (value > threshold) {
+            cutoutBuffer[index] = data[i * 3];         // R
+            cutoutBuffer[index + 1] = data[i * 3 + 1];     // G
+            cutoutBuffer[index + 2] = data[i * 3 + 2];     // B
+            cutoutBuffer[index + 3] = 255;             // A (不透明)
+        } else {
+            cutoutBuffer[index] = 0;         // R
+            cutoutBuffer[index + 1] = 0;     // G
+            cutoutBuffer[index + 2] = 0;     // B
+            cutoutBuffer[index + 3] = 0;     // A (透明)
         }
-    })
-    .resize(800, 800, {
-        fit: 'inside',  // 保持宽高比
-        withoutEnlargement: true  // 如果图片小于800px则不放大
-    })
-    .toFormat(options.outputformat as keyof sharp.FormatEnum)
-    .toBuffer();
+    }
+    //  // 8. 保存结果为图片
+    //  await sharp(outputBuffer, { raw: { width: width, height: height, channels: 4 } })
+    //  .png()
+    //  .toFile(outputPath);
+
+    // console.log(`Image saved to ${outputPath}`);
+
+    // 保存抠图结果
+    await sharp(cutoutBuffer, { raw: { width: width, height: height, channels: 4 } })
+        .png()
+        .toFile(outputPath);
+
+    console.log(`Cutout image saved to ${outputPath}`);
 
     // 获取文件大小
     const stats = fs.statSync(outputPath);
     const fileSizeInBytes = stats.size;
-
-    // 为了进一步减小base64大小，对于预览可以使用webp格式
-    const previewBase64 = await sharp(previewBuffer)
-        .toFormat('webp', { quality: 80 })
-        .toBuffer();
-
     return {
-        uid: options.uid,
-        outputPath,
-        fileSize: fileSizeInBytes,
-        base64Image: `data:image/webp;base64,${previewBase64.toString('base64')}`,
-    };
+      uid: inputOptions.uid,
+      outputPath,
+      fileSize: fileSizeInBytes,
+      base64Image: `data:image/png;base64,${cutoutBuffer.toString()}`,
+    }
+
+  } catch (e) {
+    console.warn(e)
+  }
+
 }

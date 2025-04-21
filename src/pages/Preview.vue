@@ -9,7 +9,17 @@ onMounted(() => {
     if (!data) return;
     const list = data.split(',')
     previewList.value = list as string[]
+    listen()
 })
+
+// 监听 close 按钮的点击
+function listen () {
+    const antClose = document.querySelector('.anticon-close')
+    antClose && antClose.addEventListener('click', () => {
+        // 关闭当前窗口
+        window.ipcRenderer.invoke('close-win');
+    })
+}
 // 设置显示隐藏
 const setVisible = () => {}
 </script>

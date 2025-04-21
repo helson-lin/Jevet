@@ -25,6 +25,7 @@ interface PROCESED_ITEM {
 import { ref, computed, h } from "vue";
 import Upload from "../components/Upload.vue";
 import { message, Modal, type UploadFile, type SelectProps } from "ant-design-vue";
+import { useI18n } from 'vue-i18n';
 import {
   Export,
   PreviewOpen,
@@ -34,6 +35,8 @@ import {
   ArrowRight,
   Info,
 } from "@icon-park/vue-next";
+
+const { t } = useI18n();
 const list = ref<UploadFile[]>([]);
 const loading = ref(false);
 const processImgs = ref<SHARP_RESULT[]>([]);
@@ -62,7 +65,7 @@ const previewList = computed(() => {
   return list.value.reduce<PROCESED_ITEM[]>((pre, val) => {
     // 是否已经处理过
     const isInResult = processImgs.value.find(
-      (result) => result.uid === val.uid
+      (result) => result?.uid === val?.uid
     );
     if (!isInResult) {
       pre.push({
@@ -106,26 +109,23 @@ const previewList = computed(() => {
   }, []);
 });
 
+const supportedModels = [
+    'u2net',
+    'silueta',
+    'u2net_human_seg',
+    'u2net_cloth_seg',
+    'model'
+];
+
 const options = ref<{
-  width: number;
-  height: number;
+  model: string;
   quality: number;
-  keepExif: boolean;
-  originSize: boolean;
   outputformat: string;
 }>({
   model: 'u2net',
   quality: 80,
   outputformat: "png",
 });
-
-const supportedModels = [
-    'BEN2_Base',
-    'u2net',
-    'silueta',
-    'u2net_human_seg',
-    'u2net_cloth_seg'
-]
 
 const supportedFormat = [
   "png",
@@ -134,25 +134,21 @@ const supportedFormat = [
   "webp"
 ];
 
-const noticeMap = {
-  icns: "icns 格式无法调整尺寸和压缩率,其他参数无效",
-  ico: "ico为 windows 程序图标格式",
-};
-
+const showQuality = computed(() => true);
 
 // 删除图片
 const deleteImg = (item: PROCESED_ITEM) => {
   const imgIndex = list.value.findIndex((item) => item.uid === item.uid);
   if (imgIndex !== -1) {
     list.value.splice(imgIndex, 1);
-    message.success("🎉 删除成功");
+    message.success(t('imgProcess.deleteImgSuccess'));
   }
 };
 
 // 删除所有的图片
 const deleteImgALl = () => {
   if (list.value.length === 0) {
-    message.info('没有可以删除的图片')
+    message.info(t('imgProcess.noImages'))
     return;
   }
   Modal.confirm({
@@ -168,20 +164,19 @@ const deleteImgALl = () => {
         fill: '#FF4D4F',
         class: 'mr-2'
     }),
-    h('span', { class: 'inline-flex text-base font-bold'}, '删除')
+    h('span', { class: 'inline-flex text-base font-bold'}, t('imgProcess.delete'))
     ]),
-    content: '确定删除所有的图片？',
-    okText: '确定',
+    content: t('imgProcess.deleteConfirm'),
+    okText: t('imgProcess.confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('imgProcess.cancel'),
     onOk() {
       list.value = [];
-      message.success("🎉 全部清除成功");
+      message.success(t('imgProcess.deleteSuccess'));
     },
     onCancel() {},
   });
 };
-
 
 const previewImg = (item: PROCESED_ITEM) => {
   window.ipcRenderer.invoke("open-win", `preview?url=${item.outputPath}`);
@@ -193,7 +188,7 @@ const exportIMG = (filePath: string) => {
     .then(
       (res: { downloadsPaths: string[]; success: boolean; error?: string }) => {
         if (res.success && res.downloadsPaths?.[0]) {
-          message.success(`文件转存到${res.downloadsPaths?.[0]}`);
+          message.success(t('imgProcess.moveToDownloads', { path: res.downloadsPaths?.[0] }));
         } else if (res.error) {
           message.error(res.error);
         }
@@ -203,10 +198,16 @@ const exportIMG = (filePath: string) => {
 
 function formatFileSize(bytes?: number) {
   if (!bytes) return "";
-  if (bytes === 0) return "0 Bytes";
+  if (bytes === 0) return `0 ${t('imgProcess.bytes')}`;
 
   const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+  const sizes = [
+    t('imgProcess.bytes'),
+    t('imgProcess.kb'),
+    t('imgProcess.mb'),
+    t('imgProcess.gb'),
+    t('imgProcess.tb')
+  ];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
@@ -214,7 +215,6 @@ function formatFileSize(bytes?: number) {
 
 const processSingleIMG = async (item: PROCESED_ITEM) => {
   const fileBuffers = [];
-  // singFile.uid;
   const bufferData = await item.file.arrayBuffer();
   fileBuffers.push({ buffer: bufferData, uid: item.uid });
   try {
@@ -233,7 +233,6 @@ const processSingleIMG = async (item: PROCESED_ITEM) => {
           console.log("✅", data);
           loading.value = false;
           if (data.success && data.results) {
-            // 不可以直接替换
             processImgs.value = data.results;
           } else {
             if (data.error) message.warning(data.error);
@@ -256,7 +255,7 @@ const exportAll = () => {
     .filter((i) => i.status === 1)
     .map((i) => i.outputPath);
   if (filePaths.length === 0) {
-    message.info("没有可以导出的图片");
+    message.info(t('imgProcess.noExportImages'));
     return;
   }
   window.ipcRenderer
@@ -264,7 +263,7 @@ const exportAll = () => {
     .then(
       (res: { downloadsPaths: string[]; success: boolean; error?: string }) => {
         if (res.success && res.downloadsPaths?.[0]) {
-          message.success(`🎉 批量导出成功`);
+          message.success(t('imgProcess.batchExportSuccess'));
         } else if (res.error) {
           message.error(res.error);
         }
@@ -275,12 +274,11 @@ const exportAll = () => {
 const processIMG = async () => {
   const files = list.value;
   if (files.length === 0) {
-    message.info("没有需要处理的图片，上传点图片吧");
+    message.info(t('imgProcess.noImages'));
     return;
   }
   const fileBuffers = [];
   for (const singFile of files) {
-    // singFile.uid;
     const bufferData = await (singFile.originFileObj as File).arrayBuffer();
     fileBuffers.push({ buffer: bufferData, uid: singFile.uid });
   }
@@ -316,6 +314,10 @@ const processIMG = async () => {
     message.error(e.message);
   }
 };
+
+const handleChange = (value: string) => {
+  // No special handling needed for background removal
+};
 </script>
 
 <template>
@@ -327,7 +329,7 @@ const processIMG = async () => {
       <div class="flex flex-col flex-1 border-box">
         <div class="w-full flex justify-between">
           <!-- 标题 -->
-          <label class="zinc-label">上传图片</label>
+          <label class="zinc-label">{{ t('imgProcess.upload') }}</label>
           <div class="flex items-center">
             <delete-one
               @click="deleteImgALl"
@@ -382,7 +384,6 @@ const processIMG = async () => {
                   alt="image"
                 >
                   <template #previewMask>
-                    <!-- <play-one @click="processSingleIMG(ii)" theme="outline" size="27" fill="#fff" strokeLinejoin="bevel" strokeLinecap="square"/> -->
                     <delete-one
                       @click="deleteImg(ii)"
                       class="ml-2"
@@ -418,7 +419,7 @@ const processIMG = async () => {
                   color="green"
                   v-if="ii.status === 1"
                 >
-                  {{ ii.status === 1 ? "已处理" : "" }}
+                  {{ t('removeBg.processed') }}
                 </a-tag>
                 <div
                   class="loading-mask absolute w-full h-full top-0 left-0 flex items-center justify-center backdrop-blur-sm rounded"
@@ -436,11 +437,11 @@ const processIMG = async () => {
     <div class="app-right flex-1 flex flex-col bg-zinc-100 shadow">
       <div class="options flex flex-1 flex-col px-2">
         <div class="flex flex-col py-2">
-          <div class="flex items-center">
-            <label class="mr-2 zinc-label w-20">模型</label>
+          <div class="w-full flex mb-2 justify-between">
+            <label class="mr-2 zinc-label flex-1">{{ t('removeBg.model') }}</label>
             <a-select
               v-model:value="options.model"
-              class="w-40"
+              class="w-44"
             >
               <a-select-option
                 v-for="model in supportedModels"
@@ -451,10 +452,10 @@ const processIMG = async () => {
             </a-select>
           </div>
           </div>
-        <div class="flex items-center py-2">
-          <label class="mr-2 zinc-label w-20">压缩</label>
+        <div class="w-full flex mb-2 justify-between">
+          <label class="mr-2 zinc-label flex-1">{{ t('removeBg.compression') }}</label>
           <a-input-number
-            class="w-40"
+             class="w-44"
             :disabled="!showQuality"
             v-model:value="options.quality"
             :min="1"
@@ -464,11 +465,11 @@ const processIMG = async () => {
           </a-input-number>
         </div>
         <div class="flex flex-col py-2">
-          <div class="flex items-center">
-            <label class="mr-2 zinc-label w-20">输出格式</label>
+          <div class="w-full flex mb-2 justify-between">
+            <label class="mr-2 zinc-label flex-1">{{ t('removeBg.outputFormat') }}</label>
             <a-select
               v-model:value="options.outputformat"
-              class="w-40"
+                class="w-44"
               @change="handleChange"
             >
               <a-select-option
@@ -481,17 +482,15 @@ const processIMG = async () => {
           </div>
           <div
             class="notice text-xs pl-2 mt-2 text-gray-400 block"
-            v-if="noticeMap[options.outputformat as keyof typeof noticeMap]"
+            v-if="options.outputformat === 'icns' || options.outputformat === 'ico'"
           >
-            {{ noticeMap[options.outputformat as keyof typeof noticeMap] }}
+            {{ t(`removeBg.notice.${options.outputformat}`) }}
           </div>
         </div>
       </div>
       <div class="flex w-full py-2 shadow justify-between px-2">
-        <a-button class="ml-2" @click="processIMG" type="primary"
-          >批量处理</a-button>
-        <a-button class="ml-2" @click="exportAll" type="primary"
-          >全部导出</a-button>
+        <a-button class="ml-2" @click="processIMG" type="primary">{{ t('removeBg.batchProcess') }}</a-button>
+        <a-button class="ml-2" @click="exportAll" type="primary">{{ t('removeBg.exportAll') }}</a-button>
       </div>
     </div>
   </div>

@@ -1,4 +1,20 @@
 <script setup lang="ts">
+import { ref, computed, h } from "vue";
+import Upload from "../components/Upload.vue";
+import { message, Modal, type UploadFile, type SelectProps } from "ant-design-vue";
+import { useI18n } from 'vue-i18n';
+import {
+  Export,
+  PreviewOpen,
+  DeleteOne,
+  PlayOne,
+  CheckSmall,
+  ArrowRight,
+  Info,
+} from "@icon-park/vue-next";
+
+const { t } = useI18n();
+
 interface SHARP_RESULT {
   outputPath: string;
   base64Image: string;
@@ -22,18 +38,6 @@ interface PROCESED_ITEM {
   base64Image: string;
 }
 
-import { ref, computed, h } from "vue";
-import Upload from "../components/Upload.vue";
-import { message, Modal, type UploadFile, type SelectProps } from "ant-design-vue";
-import {
-  Export,
-  PreviewOpen,
-  DeleteOne,
-  PlayOne,
-  CheckSmall,
-  ArrowRight,
-  Info,
-} from "@icon-park/vue-next";
 const list = ref<UploadFile[]>([]);
 const loading = ref(false);
 const processImgs = ref<SHARP_RESULT[]>([]);
@@ -95,9 +99,9 @@ const previewList = computed(() => {
         preview: URL.createObjectURL(val.originFileObj as File),
         compressionRatio: val.originFileObj?.size
           ? calculateCompressionRatio(
-              val.originFileObj?.size,
-              isInResult?.fileSize
-            )
+            val.originFileObj?.size,
+            isInResult?.fileSize
+          )
           : "",
         base64Image: isInResult?.base64Image,
       });
@@ -156,14 +160,14 @@ const deleteImg = (item: PROCESED_ITEM) => {
   const imgIndex = list.value.findIndex((item) => item.uid === item.uid);
   if (imgIndex !== -1) {
     list.value.splice(imgIndex, 1);
-    message.success("🎉 删除成功");
+    message.success(t('imgProcess.deleteImgSuccess'));
   }
 };
 
 // 删除所有的图片
 const deleteImgALl = () => {
   if (list.value.length === 0) {
-    message.info('没有可以删除的图片')
+    message.info(t('imgProcess.noImages'))
     return;
   }
   Modal.confirm({
@@ -171,25 +175,25 @@ const deleteImgALl = () => {
     icon: h('div', {
       class: 'flex items-center'
     }, [
-      h(Info, {  
+      h(Info, {
         theme: 'outline',
         size: '27',
         strokeLinejoin: 'bevel',
         strokeLinecap: 'square',
         fill: '#FF4D4F',
         class: 'mr-2'
-    }),
-    h('span', { class: 'inline-flex text-base font-bold'}, '删除')
+      }),
+      h('span', { class: 'inline-flex text-base font-bold' }, t('imgProcess.delete'))
     ]),
-    content: '确定删除所有的图片？',
-    okText: '确定',
+    content: t('imgProcess.deleteConfirm'),
+    okText: t('imgProcess.confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('imgProcess.cancel'),
     onOk() {
       list.value = [];
-      message.success("🎉 全部清除成功");
+      message.success(t('imgProcess.deleteSuccess'));
     },
-    onCancel() {},
+    onCancel() { },
   });
 };
 
@@ -218,7 +222,7 @@ const exportIMG = (filePath: string) => {
     .then(
       (res: { downloadsPaths: string[]; success: boolean; error?: string }) => {
         if (res.success && res.downloadsPaths?.[0]) {
-          message.success(`文件转存到${res.downloadsPaths?.[0]}`);
+          message.success(t('imgProcess.moveToDownloads', { path: res.downloadsPaths?.[0] }));
         } else if (res.error) {
           message.error(res.error);
         }
@@ -228,10 +232,16 @@ const exportIMG = (filePath: string) => {
 
 function formatFileSize(bytes?: number) {
   if (!bytes) return "";
-  if (bytes === 0) return "0 Bytes";
+  if (bytes === 0) return `0 ${t('imgProcess.bytes')}`;
 
   const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+  const sizes = [
+    t('imgProcess.bytes'),
+    t('imgProcess.kb'),
+    t('imgProcess.mb'),
+    t('imgProcess.gb'),
+    t('imgProcess.tb')
+  ];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
@@ -281,7 +291,7 @@ const exportAll = () => {
     .filter((i) => i.status === 1)
     .map((i) => i.outputPath);
   if (filePaths.length === 0) {
-    message.info("没有可以导出的图片");
+    message.info(t('imgProcess.noExportImages'));
     return;
   }
   window.ipcRenderer
@@ -289,7 +299,7 @@ const exportAll = () => {
     .then(
       (res: { downloadsPaths: string[]; success: boolean; error?: string }) => {
         if (res.success && res.downloadsPaths?.[0]) {
-          message.success(`🎉 批量导出成功`);
+          message.success(t('imgProcess.batchExportSuccess'));
         } else if (res.error) {
           message.error(res.error);
         }
@@ -300,7 +310,7 @@ const exportAll = () => {
 const processIMG = async () => {
   const files = list.value;
   if (files.length === 0) {
-    message.info("没有需要处理的图片，上传点图片吧");
+    message.info(t('imgProcess.noImages'));
     return;
   }
   const fileBuffers = [];
@@ -352,103 +362,50 @@ const processIMG = async () => {
       <div class="flex flex-col flex-1 border-box">
         <div class="w-full flex justify-between">
           <!-- 标题 -->
-          <label class="zinc-label">上传图片</label>
+          <label class="zinc-label">{{ t('imgProcess.upload') }}</label>
           <div class="flex items-center">
-            <delete-one
-              @click="deleteImgALl"
-              class="ml-2 cursor-pointer"
-              theme="outline"
-              size="20"
-              fill="#333"
-              strokeLinejoin="bevel"
-              strokeLinecap="square"
-            />
+            <delete-one @click="deleteImgALl" class="ml-2 cursor-pointer" theme="outline" size="20" fill="#333"
+              strokeLinejoin="bevel" strokeLinecap="square" />
           </div>
         </div>
         <div class="flex overflow-x-auto w-full box-border">
           <div class="flex w-max">
             <div
               class="img-item flex-col mx-2 my-2 relative inline-flex backdrop-blur-md rounded-md items-center justify-center"
-              v-for="ii in previewList"
-              :key="ii.uid"
-            >
-              <div
-                class="top-0 left-0 z-20 w-full px-2 py-1 mb-2 box-border flex flex-col backdrop-blur-md"
-              >
+              v-for="ii in previewList" :key="ii.uid">
+              <div class="top-0 left-0 z-20 w-full px-2 py-1 mb-2 box-border flex flex-col backdrop-blur-md">
                 <span
-                  class="text-sm font-bold text-black w-full overflow-ellipsis whitespace-nowrap overflow-hidden max-w-32"
-                  >{{ ii.filename }}</span
-                >
+                  class="text-sm font-bold text-black w-full overflow-ellipsis whitespace-nowrap overflow-hidden max-w-32">{{
+                  ii.filename }}</span>
                 <span
-                  class="text-sm text-black w-full overflow-ellipsis whitespace-nowrap overflow-hidden inline-flex items-center"
-                  >{{ ii.type }} <span class="font-bold text-lg mx-2">·</span>
+                  class="text-sm text-black w-full overflow-ellipsis whitespace-nowrap overflow-hidden inline-flex items-center">{{
+                  ii.type }} <span class="font-bold text-lg mx-2">·</span>
                   {{ ii.size }}
                   <span v-if="ii.status === 1" class="inline-flex items-center">
-                    <arrow-right
-                      class="mx-2"
-                      theme="outline"
-                      size="15"
-                      :fill="ii.decrease ? '#00b96b' : '#FF523F'"
-                      strokeLinejoin="bevel"
-                      strokeLinecap="square"
-                    />
-                    {{ ii.handledSize }}</span
-                  ></span
-                >
+                    <arrow-right class="mx-2" theme="outline" size="15" :fill="ii.decrease ? '#00b96b' : '#FF523F'"
+                      strokeLinejoin="bevel" strokeLinecap="square" />
+                    {{ ii.handledSize }}</span></span>
               </div>
               <!-- 图片预览 -->
               <div class="img-preview relative">
-                <a-image
-                  class="relative"
-                  :preview="{ visible: false }"
-                  :width="'max-content'"
-                  :height="120"
-                  :src="ii.preview"
-                  alt="image"
-                >
+                <a-image class="relative" :preview="{ visible: false }" :width="'max-content'" :height="120"
+                  :src="ii.preview" alt="image">
                   <template #previewMask>
                     <!-- <play-one @click="processSingleIMG(ii)" theme="outline" size="27" fill="#fff" strokeLinejoin="bevel" strokeLinecap="square"/> -->
-                    <delete-one
-                      @click="deleteImg(ii)"
-                      class="ml-2"
-                      theme="outline"
-                      size="20"
-                      fill="#fff"
-                      strokeLinejoin="bevel"
-                      strokeLinecap="square"
-                    />
-                    <preview-open
-                      @click="previewImg(ii)"
-                      class="ml-2"
-                      theme="outline"
-                      size="20"
-                      fill="#fff"
-                      strokeLinejoin="bevel"
-                      strokeLinecap="square"
-                    />
-                    <export
-                      v-if="ii.status === 1"
-                      @click="exportIMG(ii.outputPath)"
-                      class="ml-2"
-                      theme="outline"
-                      size="20"
-                      fill="#fff"
-                      strokeLinejoin="bevel"
-                      strokeLinecap="square"
-                    />
+                    <delete-one @click="deleteImg(ii)" class="ml-2" theme="outline" size="20" fill="#fff"
+                      strokeLinejoin="bevel" strokeLinecap="square" />
+                    <preview-open @click="previewImg(ii)" class="ml-2" theme="outline" size="20" fill="#fff"
+                      strokeLinejoin="bevel" strokeLinecap="square" />
+                    <export v-if="ii.status === 1" @click="exportIMG(ii.outputPath)" class="ml-2" theme="outline"
+                      size="20" fill="#fff" strokeLinejoin="bevel" strokeLinecap="square" />
                   </template>
                 </a-image>
-                <a-tag
-                  class="absolute right-2 bottom-2 z-20"
-                  color="green"
-                  v-if="ii.status === 1"
-                >
-                  {{ ii.status === 1 ? "已处理" : "" }}
+                <a-tag class="absolute right-2 bottom-2 z-20" color="green" v-if="ii.status === 1">
+                  {{ t('imgProcess.processed') }}
                 </a-tag>
                 <div
                   class="loading-mask absolute w-full h-full top-0 left-0 flex items-center justify-center backdrop-blur-sm rounded"
-                  v-if="loading"
-                >
+                  v-if="loading">
                   <a-spin />
                 </div>
               </div>
@@ -458,77 +415,57 @@ const processIMG = async () => {
       </div>
     </div>
     <!-- 右侧工具栏 -->
-    <div class="app-right flex-1 flex flex-col bg-zinc-100 shadow">
+    <div class="app-right flex-1 flex flex-col bg-zinc-100 shadow pt-4">
       <div class="options flex flex-1 flex-col px-2">
-        <div class="flex items-center py-2">
-          <label class="mr-2 zinc-label w-20">原始尺寸</label>
-          <a-switch
-            v-model:checked="options.originSize"
-            :disabled="disabledResize"
-            @change="originSizeChange"
-          />
+        <div class="w-full flex mb-2 justify-between">
+          <label class="mr-2 zinc-label mb-2 flex-1">{{ t('options.originalSize') }}</label>
+          <div class="pl-2">
+            <a-switch v-model:checked="options.originSize" :disabled="disabledResize" @change="originSizeChange" />
+          </div>
         </div>
-        <div class="flex items-center py-2">
-          <label class="mr-2 zinc-label w-20">宽高</label>
-          <a-input-number
-            v-model:value="options.width"
-            :min="1"
-            :disabled="options.originSize"
-            style="width: 70px"
-          />
-          <span class="ml-2 mr-2">X</span>
-          <a-input-number
-            v-model:value="options.height"
-            :min="1"
-            :disabled="options.originSize"
-            style="width: 70px"
-          />
+        <div class="w-full flex mb-2 justify-between">
+          <label class="mr-2 zinc-label mb-2 flex-1">{{ t('options.dimensions') }}</label>
+          <div class="pl-2 flex items-center">
+              <a-input-number class="flex-1" v-model:value="options.width" :min="1" :disabled="options.originSize" style="width: 80px"
+                :placeholder="t('options.width')" />
+                <span class="mx-2">X</span>
+              <a-input-number  class="flex-1" v-model:value="options.height" :min="1" :disabled="options.originSize" style="width: 80px"
+                :placeholder="t('options.height')" />
+          </div>
         </div>
-        <div class="flex items-center py-2">
-          <label class="mr-2 zinc-label w-20">EXIF保留</label>
-          <a-switch v-model:checked="options.keepExif" />
+        <div class="fw-full flex mb-2 justify-between">
+          <label class="mr-2 zinc-label  mb-2 flex-1">{{ t('options.keepExif') }}</label>
+          <div class="pl-2">
+            <a-switch v-model:checked="options.keepExif" />
+          </div>
         </div>
-        <div class="flex items-center py-2">
-          <label class="mr-2 zinc-label w-20">压缩</label>
-          <a-input-number
-            class="w-40"
-            :disabled="!showQuality"
-            v-model:value="options.quality"
-            :min="1"
-            :max="100"
-          >
-            <template #addonAfter>%</template>
-          </a-input-number>
+        <div class="w-full flex mb-2 justify-between">
+          <label class="mr-2 zinc-label  mb-2 flex-1">{{ t('options.compression') }}</label>
+          <div class="pl-2">
+            <a-input-number class="w-40" :disabled="!showQuality" v-model:value="options.quality" :min="1" :max="100">
+              <template #addonAfter>%</template>
+            </a-input-number>
+          </div>
         </div>
         <div class="flex flex-col py-2">
-          <div class="flex items-center">
-            <label class="mr-2 zinc-label w-20">输出格式</label>
-            <a-select
-              v-model:value="options.outputformat"
-              class="w-40"
-              @change="handleChange"
-            >
-              <a-select-option
-                v-for="format in supportedFormat"
-                :key="format"
-                :value="format"
-                >{{ format.toUpperCase() }}</a-select-option
-              >
-            </a-select>
+          <div class="w-full flex mb-2 justify-between">
+            <label class="mr-2 zinc-label  mb-2 flex-1">{{ t('options.outputFormat') }}</label>
+            <div class="pl-2">
+              <a-select v-model:value="options.outputformat" class="w-40" @change="handleChange">
+                <a-select-option v-for="format in supportedFormat" :key="format" :value="format">{{ format.toUpperCase()
+                  }}</a-select-option>
+              </a-select>
+            </div>
           </div>
-          <div
-            class="notice text-xs pl-2 mt-2 text-gray-400 block"
-            v-if="noticeMap[options.outputformat as keyof typeof noticeMap]"
-          >
-            {{ noticeMap[options.outputformat as keyof typeof noticeMap] }}
+          <div class="notice text-xs pl-2 mt-2 text-gray-400 block"
+            v-if="noticeMap[options.outputformat as keyof typeof noticeMap]">
+            {{ t(`options.notice.${options.outputformat}`) }}
           </div>
         </div>
       </div>
       <div class="flex w-full py-2 shadow justify-between px-2">
-        <a-button class="ml-2" @click="processIMG" type="primary"
-          >批量处理</a-button>
-        <a-button class="ml-2" @click="exportAll" type="primary"
-          >全部导出</a-button>
+        <a-button class="ml-2" @click="processIMG" type="primary">{{ t('imgProcess.batchProcess') }}</a-button>
+        <a-button class="ml-2" @click="exportAll" type="primary">{{ t('imgProcess.exportAll') }}</a-button>
       </div>
     </div>
   </div>
@@ -538,6 +475,7 @@ const processIMG = async () => {
 .loading-mask {
   background: rgba(0, 0, 0, 0.1);
 }
+
 .img-item {
   background: rgba(0, 0, 0, 0.1);
 }
