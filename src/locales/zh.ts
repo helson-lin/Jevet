@@ -4,6 +4,18 @@ export default {
     settings: '设置',
     github: '查看 GitHub'
   },
+  settings: {
+    paths: '路径设置',
+    modelPath: '模型目录',
+    outputPath: '输出目录',
+    selectModelPath: '选择模型存储位置',
+    selectOutputPath: '选择文件输出位置',
+    browse: '浏览',
+    modelManagement: '模型管理',
+    download: '下载',
+    downloadSuccess: '模型下载成功',
+    downloadFailed: '模型下载失败'
+  },
   imgProcess: {
     upload: '上传图片',
     deleteAll: '删除全部',

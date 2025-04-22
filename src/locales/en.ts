@@ -4,6 +4,18 @@ export default {
     settings: 'Settings',
     github: 'View on GitHub'
   },
+  settings: {
+    paths: 'Path Settings',
+    modelPath: 'Model Directory',
+    outputPath: 'Output Directory',
+    selectModelPath: 'Select model storage location',
+    selectOutputPath: 'Select output file location',
+    browse: 'Browse',
+    modelManagement: 'Model Management',
+    download: 'Download',
+    downloadSuccess: 'Model downloaded successfully',
+    downloadFailed: 'Failed to download model'
+  },
   imgProcess: {
     upload: 'Upload Images',
     deleteAll: 'Delete All',
@@ -31,7 +43,7 @@ export default {
     title: 'Remove Background',
     model: 'Model',
     compression: 'Compression',
-    outputFormat: 'OutputFormat',
+    outputFormat: 'Output Format',
     batchProcess: 'Batch Process',
     exportAll: 'Export All',
     processed: 'Processed',
