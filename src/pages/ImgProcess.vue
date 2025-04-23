@@ -6,7 +6,6 @@ import { useI18n } from 'vue-i18n';
 import {
   Export,
   PreviewOpen,
-  DeleteOne,
   PlayOne,
   CheckSmall,
   ArrowRight,
@@ -354,7 +353,7 @@ const processIMG = async () => {
 </script>
 
 <template>
-  <div class="flex w-full h-full bg-zinc-100">
+  <div class="flex w-full h-full bg-zinc-100 dark:bg-zinc-800">
     <!-- 左侧上传区域 -->
     <div class="app-left w-2/3 h-full px-2 py-2 flex flex-col">
       <Upload v-model:list="list" />
@@ -362,10 +361,10 @@ const processIMG = async () => {
       <div class="flex flex-col flex-1 border-box">
         <div class="w-full flex justify-between">
           <!-- 标题 -->
-          <label class="zinc-label">{{ t('imgProcess.upload') }}</label>
+          <label class="zinc-label dark:text-zinc-300">{{ t('imgProcess.upload') }}</label>
           <div class="flex items-center">
-            <delete-one @click="deleteImgALl" class="ml-2 cursor-pointer" theme="outline" size="20" fill="#333"
-              strokeLinejoin="bevel" strokeLinecap="square" />
+            <Icon name="delete-one" @click="deleteImgALl" class="ml-2 cursor-pointer"
+            strokeLinejoin="bevel" strokeLinecap="square" :size="20" />
           </div>
         </div>
         <div class="flex overflow-x-auto w-full box-border">
@@ -375,10 +374,10 @@ const processIMG = async () => {
               v-for="ii in previewList" :key="ii.uid">
               <div class="top-0 left-0 z-20 w-full px-2 py-1 mb-2 box-border flex flex-col backdrop-blur-md">
                 <span
-                  class="text-sm font-bold text-black w-full overflow-ellipsis whitespace-nowrap overflow-hidden max-w-32">{{
+                  class="text-sm font-bold text-black dark:text-zinc-300 w-full overflow-ellipsis whitespace-nowrap overflow-hidden max-w-32">{{
                   ii.filename }}</span>
                 <span
-                  class="text-sm text-black w-full overflow-ellipsis whitespace-nowrap overflow-hidden inline-flex items-center">{{
+                  class="text-sm text-black dark:text-zinc-300 w-full overflow-ellipsis whitespace-nowrap overflow-hidden inline-flex items-center">{{
                   ii.type }} <span class="font-bold text-lg mx-2">·</span>
                   {{ ii.size }}
                   <span v-if="ii.status === 1" class="inline-flex items-center">
@@ -391,13 +390,11 @@ const processIMG = async () => {
                 <a-image class="relative" :preview="{ visible: false }" :width="'max-content'" :height="120"
                   :src="ii.preview" alt="image">
                   <template #previewMask>
-                    <!-- <play-one @click="processSingleIMG(ii)" theme="outline" size="27" fill="#fff" strokeLinejoin="bevel" strokeLinecap="square"/> -->
-                    <delete-one @click="deleteImg(ii)" class="ml-2" theme="outline" size="20" fill="#fff"
+                    <Icon name="delete-one"  @click="deleteImg(ii)" class="ml-2" strokeLinejoin="bevel" strokeLinecap="square" />
+                      <Icon name="preview-open"  @click="previewImg(ii)" class="ml-2"
                       strokeLinejoin="bevel" strokeLinecap="square" />
-                    <preview-open @click="previewImg(ii)" class="ml-2" theme="outline" size="20" fill="#fff"
-                      strokeLinejoin="bevel" strokeLinecap="square" />
-                    <export v-if="ii.status === 1" @click="exportIMG(ii.outputPath)" class="ml-2" theme="outline"
-                      size="20" fill="#fff" strokeLinejoin="bevel" strokeLinecap="square" />
+                      <Icon name="export" v-if="ii.status === 1" @click="exportIMG(ii.outputPath)" class="ml-2" theme="outline"
+                      strokeLinejoin="bevel" strokeLinecap="square"/>
                   </template>
                 </a-image>
                 <a-tag class="absolute right-2 bottom-2 z-20" color="green" v-if="ii.status === 1">
@@ -415,32 +412,32 @@ const processIMG = async () => {
       </div>
     </div>
     <!-- 右侧工具栏 -->
-    <div class="app-right flex-1 flex flex-col bg-zinc-100 shadow pt-4">
+    <div class="app-right flex-1 flex flex-col shadow pt-4">
       <div class="options flex flex-1 flex-col px-2">
         <div class="w-full flex mb-2 justify-between">
-          <label class="mr-2 zinc-label mb-2 flex-1">{{ t('options.originalSize') }}</label>
+          <label class="mr-2 zinc-label mb-2 flex-1 dark:text-zinc-300">{{ t('options.originalSize') }}</label>
           <div class="pl-2">
             <a-switch v-model:checked="options.originSize" :disabled="disabledResize" @change="originSizeChange" />
           </div>
         </div>
         <div class="w-full flex mb-2 justify-between">
-          <label class="mr-2 zinc-label mb-2 flex-1">{{ t('options.dimensions') }}</label>
+          <label class="mr-2 zinc-label mb-2 flex-1 dark:text-zinc-300">{{ t('options.dimensions') }}</label>
           <div class="pl-2 flex items-center">
               <a-input-number class="flex-1" v-model:value="options.width" :min="1" :disabled="options.originSize" style="width: 80px"
                 :placeholder="t('options.width')" />
-                <span class="mx-2">X</span>
+                <span class="mx-2 dark:text-zinc-300">X</span>
               <a-input-number  class="flex-1" v-model:value="options.height" :min="1" :disabled="options.originSize" style="width: 80px"
                 :placeholder="t('options.height')" />
           </div>
         </div>
         <div class="fw-full flex mb-2 justify-between">
-          <label class="mr-2 zinc-label  mb-2 flex-1">{{ t('options.keepExif') }}</label>
+          <label class="mr-2 zinc-label  mb-2 flex-1 dark:text-zinc-300">{{ t('options.keepExif') }}</label>
           <div class="pl-2">
             <a-switch v-model:checked="options.keepExif" />
           </div>
         </div>
         <div class="w-full flex mb-2 justify-between">
-          <label class="mr-2 zinc-label  mb-2 flex-1">{{ t('options.compression') }}</label>
+          <label class="mr-2 zinc-label  mb-2 flex-1 dark:text-zinc-300">{{ t('options.compression') }}</label>
           <div class="pl-2">
             <a-input-number class="w-40" :disabled="!showQuality" v-model:value="options.quality" :min="1" :max="100">
               <template #addonAfter>%</template>
@@ -449,7 +446,7 @@ const processIMG = async () => {
         </div>
         <div class="flex flex-col py-2">
           <div class="w-full flex mb-2 justify-between">
-            <label class="mr-2 zinc-label  mb-2 flex-1">{{ t('options.outputFormat') }}</label>
+            <label class="mr-2 zinc-label  mb-2 flex-1 dark:text-zinc-300">{{ t('options.outputFormat') }}</label>
             <div class="pl-2">
               <a-select v-model:value="options.outputformat" class="w-40" @change="handleChange">
                 <a-select-option v-for="format in supportedFormat" :key="format" :value="format">{{ format.toUpperCase()

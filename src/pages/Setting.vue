@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { FolderOpen, Download, Loading, CheckOne } from '@icon-park/vue-next';
-import type { UploadProps } from 'ant-design-vue';
+import { message, type UploadProps } from 'ant-design-vue';
 
 const { t } = useI18n();
 
@@ -10,132 +10,203 @@ interface ModelInfo {
   name: string;
   size: string;
   status: 'not_downloaded' | 'downloading' | 'downloaded';
+  downloaded: boolean;
   progress?: number;
 }
 
-const settings = ref({
-  modelPath: localStorage.getItem('modelPath') || '',
-  outputPath: localStorage.getItem('outputPath') || '',
+export interface ModelOptionItem {
+    width: number;
+    height: number;
+    size: string;
+    downloaded: boolean;
+    feedInput: string;
+}
+
+export interface ModelOption {
+    [key: string]: ModelOptionItem
+}
+
+interface AppOptions {
+  modelDir: string;
+  outputDir: string;
+  language:  string;
+  theme:  string;
+  models: ModelOption;
+}
+
+interface UpdateReponse {
+    success: boolean;
+    data: string | null;
+    error: null | Error;
+}
+
+const settings = ref<AppOptions>({
+  modelDir:  '',
+  outputDir: '',
+  language: 'zh',
+  theme: 'auto',
+  models: {},
 });
 
-const models = ref<ModelInfo[]>([
-  { 
-    name: 'u2net',
-    size: '176MB',
-    status: 'downloaded'
-  },
-  {
-    name: 'u2net_human_seg',
-    size: '186MB',
-    status: 'not_downloaded'
-  },
-  {
-    name: 'u2net_cloth_seg',
-    size: '176MB',
-    status: 'not_downloaded'
-  },
-  {
-    name: 'silueta',
-    size: '43MB',
-    status: 'downloading',
-    progress: 45
+const models = ref<ModelInfo[]>([]);
+
+window.ipcRenderer.invoke('getConfig').then((res) => {
+  if (res.success) {
+    const config = res.data
+    if (config.outputDir) settings.value.outputDir = config.outputDir
+    if (config.modelDir) settings.value.modelDir= config.modelDir
+    if (config.language) settings.value.language = config.language
+    if (config.theme) settings.value.theme = config.theme
+    if (config.models) {
+      settings.value.models = config.models
+      setModelInfo(config.models)
+    }
   }
-]);
+})
+
+const setModelInfo = (modelsOptions: ModelOption) => {
+  const modelKeys = Object.keys(modelsOptions)
+  const arr = modelKeys.reduce<any[]>((pre, val: string) => {
+    const item = modelsOptions[val]
+    pre.push({
+      name: val.replace('.onnx', ''),
+      size: item.size,
+      downloaded: item.downloaded,
+      status: item.downloaded ? 'downloaded' : 'not_downloaded'
+    })
+    return pre;
+  }, [])
+  models.value = arr
+}
 
 const selectModelPath = async () => {
   try {
-    const result = await window.ipcRenderer.invoke('select-directory');
+    const result = await window.ipcRenderer.invoke('select-directory', { title: t('settings.modelPath'), buttonLabel: t('settings.selectModelPath') });
     if (result.success) {
-      settings.value.modelPath = result.path;
-      localStorage.setItem('modelPath', result.path);
+      updateSettings({ modelDir: result.data }, () => {
+        settings.value.modelDir = result.data;
+      })
     }
   } catch (error) {
     console.error('Failed to select directory:', error);
   }
 };
+
+const updateSettings = async (options: Partial<AppOptions>, callback: Function) => {
+  const data: UpdateReponse = await window.ipcRenderer.invoke('updateConfig', options)
+  if (data.success) {
+    if (callback && typeof callback === 'function') callback(data.data)
+  } else if (data.error && !data.success) {
+    message.warning(data.error.message)
+  }
+}
 
 const selectOutputPath = async () => {
   try {
-    const result = await window.ipcRenderer.invoke('select-directory');
+    const result = await window.ipcRenderer.invoke('select-directory', { title: t('settings.outputPath'), buttonLabel: t('settings.selectOutputPath') });
     if (result.success) {
-      settings.value.outputPath = result.path;
-      localStorage.setItem('outputPath', result.path);
+      updateSettings({ outputDir: result.data }, () => {
+        settings.value.outputDir = result.data;
+      })
     }
   } catch (error) {
     console.error('Failed to select directory:', error);
   }
 };
 
-const downloadModel = (model: ModelInfo) => {
-  if (model.status === 'downloading' || model.status === 'downloaded') return;
-  
-  model.status = 'downloading';
-  model.progress = 0;
-  
-  // Simulate download progress
-  const interval = setInterval(() => {
-    if (model.progress !== undefined && model.progress < 100) {
-      model.progress += 10;
+// 开始下载
+const startDownload = async (modelInfo) => {
+  try {
+    // 监听下载进度
+    window.ipcRenderer.on('download-progress', (event, data) => {
+      if (data.modelId === modelInfo.id) {
+        // 更新进度显示
+        console.log(`下载进度: ${data.progress}%`);
+        // 更新UI显示进度
+      }
+    });
+    
+    // 启动下载
+    const result = await window.ipcRenderer.invoke('dowloadModel', {
+      url: modelInfo.downloadUrl,
+      fileName: modelInfo.fileName,
+      modelId: modelInfo.id
+    });
+    
+    if (result.success) {
+      console.log('下载成功:', result.filePath);
     } else {
-      clearInterval(interval);
-      model.status = 'downloaded';
+      console.error('下载失败:', result.message);
     }
-  }, 500);
+  } catch (error) {
+    console.error('下载出错:', error);
+  }
+};
+
+// 取消下载
+const cancelDownload = (modelId: string) => {
+  window.ipcRenderer.send(`cancel-download-${modelId}`);
 };
 </script>
 
 <template>
-  <div class="setting bg-gray-50 w-full h-full overflow-y-auto py-4">
+  <div class="setting bg-gray-50 dark:bg-zinc-800 w-full h-full overflow-y-auto py-4">
     <div class="max-w-3xl mx-auto h-full px-4 sm:px-6 lg:px-8">
       <div class="space-y-6  pb-4">
         <!-- 路径设置 -->
-        <section class="bg-white rounded-xl p-6 shadow-sm">
-          <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-            <span class="inline-block w-1 h-6 bg-primary rounded mr-3"></span>
+        <section class="bg-white dark:bg-zinc-800  rounded-xl p-6 shadow-sm">
+          <h2 class="text-large font-semibold dark:text-zinc-300 text-gray-900 mb-6 flex items-center">
             {{ t('settings.paths') }}
           </h2>
           
           <div class="space-y-6">
             <!-- 模型路径 -->
             <div class="flex flex-col space-y-3">
-              <label class="text-sm font-medium text-gray-700">{{ t('settings.modelPath') }}</label>
+              <label class="text-sm font-medium text-gray-700 dark:text-zinc-300">{{ t('settings.modelPath') }}</label>
               <div class="flex space-x-3">
                 <a-input
-                  v-model:value="settings.modelPath"
+                  v-model:value="settings.modelDir"
                   :placeholder="t('settings.selectModelPath')"
                   readonly
                   class="flex-1 hover:border-primary focus:border-primary focus:shadow-sm transition-all"
                 />
-                <a-button type="primary" @click="selectModelPath" class="hover:opacity-90 transition-opacity">
-                  <template #icon><folder-open theme="outline" size="18" /></template>
-                  {{ t('settings.browse') }}
-                </a-button>
+                <div class="pl-6">
+                  <a-button type="primary" @click="selectModelPath" class="hover:opacity-90 transition-opacity align-middle">
+                    <template #icon>
+                      <Icon name="folder-open" :size="18" light="#EAEAEA" dark="#efefef" class="mr-2"/>
+                    </template>
+                    {{ t('settings.browse') }}
+                  </a-button>
+                </div>
               </div>
             </div>
 
             <!-- 输出路径 -->
             <div class="flex flex-col space-y-3">
-              <label class="text-sm font-medium text-gray-700">{{ t('settings.outputPath') }}</label>
+              <label class="text-sm font-medium text-gray-700 dark:text-zinc-300">{{ t('settings.outputPath') }}</label>
               <div class="flex space-x-3">
                 <a-input
-                  v-model:value="settings.outputPath"
+                  v-model:value="settings.outputDir"
                   :placeholder="t('settings.selectOutputPath')"
                   readonly
                   class="flex-1 hover:border-primary focus:border-primary focus:shadow-sm transition-all"
                 />
-                <a-button type="primary" @click="selectOutputPath" class="hover:opacity-90 transition-opacity">
-                  <template #icon><folder-open theme="outline" size="18" /></template>
-                  {{ t('settings.browse') }}
-                </a-button>
+                <div class="pl-6">
+                  <a-button type="primary" @click="selectOutputPath" class="hover:opacity-90 transition-opacity align-middle">
+                    <template #icon>
+                      <Icon name="folder-open" :size="18" light="#EAEAEA" dark="#efefef" class="mr-2"/>
+                    </template>
+                    {{ t('settings.browse') }}
+                  </a-button>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         <!-- 模型管理 -->
-        <section class="bg-white rounded-xl p-6 shadow-sm">
-          <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-            <span class="inline-block w-1 h-6 bg-primary rounded mr-3"></span>
+        <section class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm">
+          <h2 class="text-large font-semibold text-gray-900 dark:text-zinc-300 mb-6 flex items-center">
             {{ t('settings.modelManagement') }}
           </h2>
           
@@ -143,12 +214,12 @@ const downloadModel = (model: ModelInfo) => {
             <div
               v-for="model in models"
               :key="model.name"
-              class="bg-gray-50 rounded-lg p-5 border border-gray-100 hover:border-primary transition-all duration-300 hover:shadow-md"
+              class="bg-gray-50 dark:bg-gray-700 rounded-lg p-5 border border-gray-100 dark:border-zinc-500  hover:border-primary transition-all duration-300 hover:shadow-md"
             >
               <div class="flex items-start justify-between">
                 <div class="space-y-2">
-                  <h3 class="font-medium text-gray-900">{{ model.name }}</h3>
-                  <p class="text-sm text-gray-500 flex items-center">
+                  <h3 class="font-medium text-gray-900 dark:text-zinc-300">{{ model.name }}</h3>
+                  <p class="text-sm text-gray-500 dark:text-zinc-300 flex items-center">
                     <span class="inline-block w-2 h-2 rounded-full mr-2"
                           :class="{
                             'bg-green-500': model.status === 'downloaded',
@@ -166,15 +237,16 @@ const downloadModel = (model: ModelInfo) => {
                   </template>
                   <template v-else>
                     <a-button 
-                      type="primary"
-                      :loading="model.status === 'downloading'"
-                      @click="downloadModel(model)"
-                      class="hover:opacity-90 transition-opacity"
+                    type="primary"
+                    :loading="model.status === 'downloading'"
+                    @click="downloadModel(model)"
+                    class="hover:opacity-90 transition-opacity align-middle"
                     >
-                      <template #icon>
-                        <download v-if="model.status === 'not_downloaded'" theme="outline" size="18" />
-                        <loading v-else theme="outline" size="18" />
-                      </template>
+                    <template #icon>
+                      <Icon name="download" class="mr-2" v-if="model.status === 'not_downloaded'" :size="18"  light="#EAEAEA" dark="#efefef" />
+                      <!-- <download v-if="model.status === 'not_downloaded'" theme="outline" size="18" /> -->
+                      <loading v-else theme="outline" size="18" />
+                    </template>
                       {{ model.status === 'downloading' ? `${model.progress}%` : t('settings.download') }}
                     </a-button>
                   </template>
@@ -191,53 +263,3 @@ const downloadModel = (model: ModelInfo) => {
     </div>
   </div>
 </template>
-
-<style scoped>
-.setting {
-  color: var(--color-text);
-  background-color: var(--color-bg-base, #f5f5f5);
-}
-
-:deep(.ant-progress-bg) {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-:deep(.ant-input) {
-  border-radius: 0.5rem;
-  transition: all 0.3s ease;
-}
-
-:deep(.ant-input:hover) {
-  border-color: var(--color-primary);
-}
-
-:deep(.ant-btn) {
-  border-radius: 0.5rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-:deep(.ant-btn-primary) {
-  background: #1890ff;
-  border-color: #1890ff;
-  color: white;
-}
-
-:deep(.ant-btn-primary:hover) {
-  background: #40a9ff;
-  border-color: #40a9ff;
-  color: white;
-}
-
-:deep(.ant-btn-primary:active) {
-  background: #096dd9;
-  border-color: #096dd9;
-}
-
-:deep(.ant-btn-primary[disabled]) {
-  background: #f5f5f5;
-  border-color: #d9d9d9;
-  color: rgba(0, 0, 0, 0.25);
-}
-</style>

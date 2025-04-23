@@ -1,6 +1,7 @@
 import { BrowserWindow, ipcMain, shell } from 'electron';
 import { VITE_DEV_SERVER_URL } from '../config';
 
+// window窗口处理
 export function setupWindowHandlers(preload: string, indexHtml: string) {
   ipcMain.handle("open-win", (_, arg) => {
     const childWindow = new BrowserWindow({

@@ -5,7 +5,6 @@ import fs from 'node:fs';
 import sharp from 'sharp';
 import * as png2icns from 'png2icons';
 import * as ort from 'onnxruntime-node'
-import { processBEN2 } from './ben2';
 import { MODEL_OPTION, type ModelOptionItem } from './config/index'
 
 interface IMG_ITEM {

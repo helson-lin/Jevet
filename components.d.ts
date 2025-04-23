@@ -22,6 +22,7 @@ declare module 'vue' {
     ATag: typeof import('ant-design-vue/es')['Tag']
     AUploadDragger: typeof import('ant-design-vue/es')['UploadDragger']
     Card: typeof import('./src/components/Card.vue')['default']
+    Icon: typeof import('./src/components/Icon.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Setting: typeof import('./src/components/Setting.vue')['default']

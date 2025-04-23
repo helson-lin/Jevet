@@ -7,8 +7,7 @@ import Setting from './pages/Setting.vue'
 const routes = [
     {
       path: '/',
-      name: 'Home',
-      component: Home,
+      redirect: '/img'
     },
     {
       path: '/img',

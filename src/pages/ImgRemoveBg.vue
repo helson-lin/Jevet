@@ -321,7 +321,7 @@ const handleChange = (value: string) => {
 </script>
 
 <template>
-  <div class="flex w-full h-full bg-zinc-100">
+  <div class="flex w-full h-full bg-zinc-100 dark:bg-zinc-800">
     <!-- 左侧上传区域 -->
     <div class="app-left w-2/3 h-full px-2 py-2 flex flex-col">
       <Upload v-model:list="list" />
@@ -434,11 +434,11 @@ const handleChange = (value: string) => {
       </div>
     </div>
     <!-- 右侧工具栏 -->
-    <div class="app-right flex-1 flex flex-col bg-zinc-100 shadow">
+    <div class="app-right flex-1 flex flex-col shadow">
       <div class="options flex flex-1 flex-col px-2">
         <div class="flex flex-col py-2">
           <div class="w-full flex mb-2 justify-between">
-            <label class="mr-2 zinc-label flex-1">{{ t('removeBg.model') }}</label>
+            <label class="mr-2 zinc-label flex-1 dark:text-zinc-300">{{ t('removeBg.model') }}</label>
             <a-select
               v-model:value="options.model"
               class="w-44"
@@ -453,7 +453,7 @@ const handleChange = (value: string) => {
           </div>
           </div>
         <div class="w-full flex mb-2 justify-between">
-          <label class="mr-2 zinc-label flex-1">{{ t('removeBg.compression') }}</label>
+          <label class="mr-2 zinc-label flex-1 dark:text-zinc-300">{{ t('removeBg.compression') }}</label>
           <a-input-number
              class="w-44"
             :disabled="!showQuality"
@@ -466,7 +466,7 @@ const handleChange = (value: string) => {
         </div>
         <div class="flex flex-col py-2">
           <div class="w-full flex mb-2 justify-between">
-            <label class="mr-2 zinc-label flex-1">{{ t('removeBg.outputFormat') }}</label>
+            <label class="mr-2 zinc-label flex-1 dark:text-zinc-300">{{ t('removeBg.outputFormat') }}</label>
             <a-select
               v-model:value="options.outputformat"
                 class="w-44"
@@ -481,7 +481,7 @@ const handleChange = (value: string) => {
             </a-select>
           </div>
           <div
-            class="notice text-xs pl-2 mt-2 text-gray-400 block"
+            class="notice text-xs pl-2 mt-2 text-gray-400 block dark:text-zinc-300"
             v-if="options.outputformat === 'icns' || options.outputformat === 'ico'"
           >
             {{ t(`removeBg.notice.${options.outputformat}`) }}

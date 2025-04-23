@@ -1,11 +1,12 @@
 import { app, BrowserWindow, shell } from "electron";
 import path from "node:path";
 import os from "node:os";
+import fs from 'node:fs';
 import { VITE_DEV_SERVER_URL, PUBLIC_DIR, RENDERER_DIST, __dirname } from "./config";
 import { setupWindowHandlers } from "./ipc/window";
 import { setupFileHandlers } from "./ipc/file";
 import { setupImageHandlers } from "./ipc/image";
-
+import { setupConfig } from './ipc/config/index'
 // Disable GPU Acceleration for Windows 7
 if (os.release().startsWith("6.1")) app.disableHardwareAcceleration();
 
@@ -24,7 +25,7 @@ const indexHtml = path.join(RENDERER_DIST, "index.html");
 async function createWindow() {
   win = new BrowserWindow({
     title: "Main window",
-    width: 850,
+    width: 900,
     height: 600,
     icon: path.join(PUBLIC_DIR, "favicon.ico"),
     webPreferences: {
@@ -51,6 +52,8 @@ async function createWindow() {
 }
 
 app.whenReady().then(() => {
+  const configPath = setupConfig();
+
   createWindow();
 
   // 设置所有 IPC 处理程序

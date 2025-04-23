@@ -1,16 +1,38 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router';
-import { Github, SettingTwo, Translation } from '@icon-park/vue-next';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
+import { theme } from 'ant-design-vue';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useColorMode } from '@vueuse/core';
+import Icon from './components/Icon.vue';
 
+const mode = useColorMode()
 const route = useRoute()
 const router = useRouter()
 const { locale: i18nLocale } = useI18n()
 const locale = ref(localStorage.getItem('language') === 'en' ? enUS : zhCN)
 const currentLang = ref(localStorage.getItem('language') || 'zh')
+const menu: {
+  iconName: string;
+  click: Function;
+}[] = [{
+  iconName: 'pic',
+  click: () => {
+    router.push({ path: '/img' })
+  }
+}, {
+  iconName: 'CuttingOne',
+  click: () => {
+    router.push({ path: '/removeBg' })
+  }
+}]
+
+const setDark = () => { 
+  if (mode.value === 'dark') mode.value = 'light' 
+  else mode.value = 'dark'
+}
 
 const openGithub = () => {
   // 使用浏览器打开 github
@@ -43,31 +65,46 @@ const jumpHome = () => router.push({ path: '/' })
 <template>
   <a-config-provider
     :locale="locale"
+    class="flex"
     :theme="{
+      algorithm: mode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
       token: {
         colorPrimary: '#00b96b',
       },
     }"
   >
-  <header class="w-full border-b border-slate-200/80 backdrop-blur-sm px-4 py-1 sticky top-0 z-50" v-if="route.path !== '/preview'">
-    <div class="flex items-center justify-between max-w-7xl mx-auto">
-      <div class="flex items-center space-x-2">
-        <span class="text-xl font-semibold bg-gradient-to-r from-green-600 to-green-600 bg-clip-text text-transparent" @click="jumpHome">Jevet</span>
+  <div class="flex w-14  bg-white dark:bg-zinc-900  backdrop-blur-sm px-4 py-1 sticky top-0 z-50" v-if="route.path !== '/preview'">
+    <div class="flex flex-col justify-between h-full w-full">
+      <!-- <div class="flex">
+        <span class="text-xl font-semibold bg-gradient-to-r from-green-600 to-green-600 bg-clip-text text-transparent" @click="jumpHome">2</span>
+      </div> -->
+      <!-- 快捷按钮 -->
+      <div class="w-full flex flex-col flex-1 items-center py-2">
+        <div class="mb-2 hover:rounded-full w-8 h-8 hover:bg-gray-300 dark:hover:bg-zinc-800 flex items-center justify-center"
+        v-for="menuItem in menu" :key="menu.iconName" @click="menuItem.click()">
+          <Icon :name="menuItem.iconName" :size="20" />
+        </div>
       </div>
-      <div class="flex items-center space-x-4">
-        <button class="py-2 rounded-full text-sm text-gray-600 hover:bg-gray-100 transition-colors duration-200" @click="toggleLanguage">
-          <translation theme="outline" size="24" fill="#333"/>
+      <!-- 底部部分按钮 -->
+      <div class="flex flex-col py-4">
+        <button class="rounded-full mb-2 w-8 h-8 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors duration-200" @click="openGithub">
+          <Icon name="github" :size="20" />
         </button>
-        <!-- <button class="py-2 rounded-full text-sm text-gray-600 hover:bg-gray-100 transition-colors duration-200" @click="openGithub">
-          <github theme="outline" size="24" fill="#333"/>
-        </button> -->
-        <button class="py-2 rounded-full text-sm text-gray-600 hover:bg-gray-100 transition-colors duration-200" @click="openSetting">
-          <setting-two theme="outline" size="24" fill="#333"/>
+        <button class="rounded-full mb-2 w-8 h-8 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors duration-200" @click="setDark">
+          <Icon name="moon" :size="20" />
+        </button>
+        <button class="rounded-full mb-2 w-8 h-8 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors duration-200" @click="toggleLanguage">
+          <Icon name="translation" :size="20" />
+        </button>
+        <button class="rounded-full mb-2 w-8 h-8 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors duration-200" @click="openSetting">
+          <Icon name="setting-two" :size="20" />
         </button>
       </div>
     </div>
-  </header>
-    <router-view class="flex-1"></router-view>  
+  </div>
+  <div class="flex-1 h-full">
+    <router-view></router-view>  
+  </div>
   </a-config-provider>
 </template>
 

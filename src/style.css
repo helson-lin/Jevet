@@ -24,7 +24,6 @@ body,html {
   height: 100%;
   background-color: #F5F5F5;
   display: flex;
-  flex-direction: column;
 }
 
 .zinc-label {
