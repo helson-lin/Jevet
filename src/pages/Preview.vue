@@ -2,15 +2,15 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 const route = useRoute();
-const previewURL =  computed(() => route.query.url)
-const previewList = ref<string[]>([])
-onMounted(() => {
-    const data = localStorage.getItem('allResouces')
-    if (!data) return;
-    const list = data.split(',')
-    previewList.value = list as string[]
-    listen()
+const previewURL =  computed(() => {
+    const url: any = route.query.url
+    if (url.startsWith('blob')) {
+        return url;
+    } else {
+        return `file://${url}`
+    }
 })
+const previewList = ref<string[]>([])
 
 // 监听 close 按钮的点击
 function listen () {
@@ -25,7 +25,7 @@ const setVisible = () => {}
 </script>
 <template>
     <div class="w-full h-full">
-        <a-image :src="`file://${previewURL}`" :style="{ display: 'none' }"
+        <a-image :src="previewURL" :style="{ display: 'none' }"
         :preview="{
             visible: true,
             onVisibleChange: setVisible,

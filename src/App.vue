@@ -3,17 +3,19 @@ import { useRouter, useRoute } from 'vue-router';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import { theme } from 'ant-design-vue';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useColorMode } from '@vueuse/core';
+import { useStore  } from './store/index'
 import Icon from './components/Icon.vue';
 
 const mode = useColorMode()
 const route = useRoute()
 const router = useRouter()
+const store = useStore()
 const { locale: i18nLocale } = useI18n()
-const locale = ref(localStorage.getItem('language') === 'en' ? enUS : zhCN)
-const currentLang = ref(localStorage.getItem('language') || 'zh')
+const locale = ref(enUS)
+const currentLang = ref('en')
 const menu: {
   iconName: string;
   click: Function;
@@ -28,6 +30,18 @@ const menu: {
     router.push({ path: '/removeBg' })
   }
 }]
+
+
+
+onMounted(async () => {
+  const success  = await store.getConfig()
+  if (success) {
+      locale.value = store.language === 'en' ? enUS : zhCN
+      currentLang.value = store.language
+      mode.value = store.theme
+      console.warn('mounted')
+  }
+})
 
 const setDark = () => { 
   if (mode.value === 'dark') mode.value = 'light' 

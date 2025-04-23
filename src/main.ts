@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
-import pinia from 'pinia'
+import { createPinia } from 'pinia'
 import './style.css'
 import '@icon-park/vue-next/styles/index.css'
 import './demos/ipc'
@@ -12,7 +12,7 @@ import i18n from './i18n'
 
 const app = createApp(App)
 
-app.use(pinia)
+app.use(createPinia())
 app.use(router)
 app.use(IconPlugin)
 app.use(i18n)

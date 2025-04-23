@@ -13,7 +13,8 @@ import {
     ArrowRight,
     FolderOpen,
     Info,
-    Download
+    Download,
+    BrowserSafari
 } from "@icon-park/vue-next";
 import type { App } from "vue";
 
@@ -33,7 +34,8 @@ const icons = {
     ArrowRight,
     FolderOpen,
     Info,
-    Download
+    Download,
+    BrowserSafari
 };
 
 // 创建插件

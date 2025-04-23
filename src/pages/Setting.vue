@@ -1,23 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, onMounted, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { FolderOpen, Download, Loading, CheckOne } from '@icon-park/vue-next';
 import { message, type UploadProps } from 'ant-design-vue';
-
+import { useStore } from '../store/index';
+import Icon from '../components/Icon.vue';
 const { t } = useI18n();
 
 interface ModelInfo {
+  id: string;
   name: string;
+  fileName: string;
   size: string;
   status: 'not_downloaded' | 'downloading' | 'downloaded';
   downloaded: boolean;
   progress?: number;
+  license: string;
+  homepage: string;
 }
 
 export interface ModelOptionItem {
     width: number;
     height: number;
     size: string;
+    license: string;
+    homepage: string;
     downloaded: boolean;
     feedInput: string;
 }
@@ -40,44 +47,41 @@ interface UpdateReponse {
     error: null | Error;
 }
 
-const settings = ref<AppOptions>({
-  modelDir:  '',
-  outputDir: '',
-  language: 'zh',
-  theme: 'auto',
-  models: {},
-});
+const store = useStore()
+
+const settings = computed<AppOptions>(() => store.settings);
 
 const models = ref<ModelInfo[]>([]);
 
-window.ipcRenderer.invoke('getConfig').then((res) => {
-  if (res.success) {
-    const config = res.data
-    if (config.outputDir) settings.value.outputDir = config.outputDir
-    if (config.modelDir) settings.value.modelDir= config.modelDir
-    if (config.language) settings.value.language = config.language
-    if (config.theme) settings.value.theme = config.theme
-    if (config.models) {
-      settings.value.models = config.models
-      setModelInfo(config.models)
-    }
-  }
-})
+const simpleUID = () =>
+  Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
 
 const setModelInfo = (modelsOptions: ModelOption) => {
   const modelKeys = Object.keys(modelsOptions)
   const arr = modelKeys.reduce<any[]>((pre, val: string) => {
     const item = modelsOptions[val]
     pre.push({
+      id: simpleUID(),
       name: val.replace('.onnx', ''),
+      fileName: val,
       size: item.size,
+      license: item.license,
+      homepage: item.homepage,
       downloaded: item.downloaded,
+      progress: 0,
       status: item.downloaded ? 'downloaded' : 'not_downloaded'
     })
     return pre;
   }, [])
   models.value = arr
-}
+}   
+
+watchEffect(() => {
+    if (settings) {
+        console.warn(settings.value)
+        setModelInfo(settings.value.models)
+    }
+})
 
 const selectModelPath = async () => {
   try {
@@ -114,32 +118,40 @@ const selectOutputPath = async () => {
   }
 };
 
+const openHomePage = (homepage: string) =>  window.ipcRenderer.invoke('open-external-url', homepage);
+
 // 开始下载
-const startDownload = async (modelInfo) => {
+const startDownload = async (modelInfo: ModelInfo) => {
+    const modelIndex = models.value.findIndex(item => item.id === modelInfo.id)
+    const model = models.value[modelIndex]
   try {
     // 监听下载进度
     window.ipcRenderer.on('download-progress', (event, data) => {
+        console.warn(data)
       if (data.modelId === modelInfo.id) {
-        // 更新进度显示
-        console.log(`下载进度: ${data.progress}%`);
-        // 更新UI显示进度
+        model.status = 'downloading'
+        model.progress = data.progress
       }
     });
+    console.warn(modelInfo)
     
     // 启动下载
     const result = await window.ipcRenderer.invoke('dowloadModel', {
-      url: modelInfo.downloadUrl,
+      url: `https://storage.helson-lin.cn/models/${modelInfo.fileName}`,
       fileName: modelInfo.fileName,
       modelId: modelInfo.id
     });
     
     if (result.success) {
-      console.log('下载成功:', result.filePath);
+        model.status = 'downloaded'
+        model.downloaded = true
     } else {
+        message.warning(result.message)
       console.error('下载失败:', result.message);
     }
   } catch (error) {
     console.error('下载出错:', error);
+    message.warning(String(error))
   }
 };
 
@@ -214,20 +226,28 @@ const cancelDownload = (modelId: string) => {
             <div
               v-for="model in models"
               :key="model.name"
-              class="bg-gray-50 dark:bg-gray-700 rounded-lg p-5 border border-gray-100 dark:border-zinc-500  hover:border-primary transition-all duration-300 hover:shadow-md"
+              class="bg-gray-50 dark:backdrop-blur-md dark:bg-gray-800 dark:border-gray-900  rounded-lg p-5 border border-gray-100  hover:border-primary transition-all duration-300 hover:shadow-md"
             >
               <div class="flex items-start justify-between">
                 <div class="space-y-2">
                   <h3 class="font-medium text-gray-900 dark:text-zinc-300">{{ model.name }}</h3>
-                  <p class="text-sm text-gray-500 dark:text-zinc-300 flex items-center">
-                    <span class="inline-block w-2 h-2 rounded-full mr-2"
-                          :class="{
-                            'bg-green-500': model.status === 'downloaded',
-                            'bg-yellow-500': model.status === 'downloading',
-                            'bg-gray-400': model.status === 'not_downloaded'
-                          }">
-                    </span>
-                    {{ model.size }}
+                  <p class="text-sm text-gray-500 dark:text-zinc-300 flex flex-col items-start">
+                    <div class="flex items-center">
+                            <span class="inline-block w-2 h-2 rounded-full mr-2"
+                            :class="{
+                                'bg-green-500': model.status === 'downloaded',
+                                'bg-yellow-500': model.status === 'downloading',
+                                'bg-gray-400': model.status === 'not_downloaded'
+                            }">
+                        </span>
+                        <span>{{ model.size }}</span>
+                    </div>
+                    <div class="mt-2">
+                        <span class="mr-2">License: {{ model.license }}</span>
+                        <a @click="openHomePage(model.homepage)" class="inline-flex items-center">
+                            Homepage: <Icon name="BrowserSafari" size="18" class="ml-2"/>
+                        </a>
+                    </div>
                   </p>
                 </div>
                 
@@ -239,7 +259,7 @@ const cancelDownload = (modelId: string) => {
                     <a-button 
                     type="primary"
                     :loading="model.status === 'downloading'"
-                    @click="downloadModel(model)"
+                    @click="startDownload(model)"
                     class="hover:opacity-90 transition-opacity align-middle"
                     >
                     <template #icon>

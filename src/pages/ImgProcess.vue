@@ -211,8 +211,8 @@ const handleChange: SelectProps["onChange"] = (value) => {
 
 const previewImg = (item: PROCESED_ITEM) => {
   const allResouces = previewList.value.map((item) => item.outputPath).join(",");
-  localStorage.setItem("allResouces", allResouces);
-  window.ipcRenderer.invoke("open-win", `preview?url=${item.outputPath}`);
+  // localStorage.setItem("allResouces", allResouces, );
+  window.ipcRenderer.invoke("open-win", `preview?url=${item.outputPath || item.preview}`);
 };
 
 const exportIMG = (filePath: string) => {
@@ -372,7 +372,7 @@ const processIMG = async () => {
             <div
               class="img-item flex-col mx-2 my-2 relative inline-flex backdrop-blur-md rounded-md items-center justify-center"
               v-for="ii in previewList" :key="ii.uid">
-              <div class="top-0 left-0 z-20 w-full px-2 py-1 mb-2 box-border flex flex-col backdrop-blur-md">
+              <div class="top-0 left-0 z-20 w-full px-2 py-1 box-border flex flex-col backdrop-blur-md">
                 <span
                   class="text-sm font-bold text-black dark:text-zinc-300 w-full overflow-ellipsis whitespace-nowrap overflow-hidden max-w-32">{{
                   ii.filename }}</span>
@@ -386,14 +386,14 @@ const processIMG = async () => {
                     {{ ii.handledSize }}</span></span>
               </div>
               <!-- 图片预览 -->
-              <div class="img-preview relative">
+              <div class="img-preview relative w-full h-full flex items-center justify-center">
                 <a-image class="relative" :preview="{ visible: false }" :width="'max-content'" :height="120"
                   :src="ii.preview" alt="image">
-                  <template #previewMask>
-                    <Icon name="delete-one"  @click="deleteImg(ii)" class="ml-2" strokeLinejoin="bevel" strokeLinecap="square" />
-                      <Icon name="preview-open"  @click="previewImg(ii)" class="ml-2"
+                  <template #previewMask class="w-full h-full">
+                      <Icon name="delete-one" light="#fff"  @click="deleteImg(ii)" class="ml-2" strokeLinejoin="bevel" strokeLinecap="square" />
+                      <Icon name="preview-open" light="#fff"  @click="previewImg(ii)" class="ml-2"
                       strokeLinejoin="bevel" strokeLinecap="square" />
-                      <Icon name="export" v-if="ii.status === 1" @click="exportIMG(ii.outputPath)" class="ml-2" theme="outline"
+                      <Icon name="export" light="#fff" v-if="ii.status === 1" @click="exportIMG(ii.outputPath)" class="ml-2" theme="outline"
                       strokeLinejoin="bevel" strokeLinecap="square"/>
                   </template>
                 </a-image>
@@ -401,7 +401,7 @@ const processIMG = async () => {
                   {{ t('imgProcess.processed') }}
                 </a-tag>
                 <div
-                  class="loading-mask absolute w-full h-full top-0 left-0 flex items-center justify-center backdrop-blur-sm rounded"
+                  class="loading-mask absolute w-full h-full top-0 left-0 bottom-0 right-0 flex items-center justify-center backdrop-blur-sm rounded"
                   v-if="loading">
                   <a-spin />
                 </div>
