@@ -89,7 +89,9 @@ const selectModelPath = async () => {
       updateSettings({ modelDir: result.data }, () => {
         // 更新设置信息
         store.updatePaths({  modelDir: result.data })
-        message.success('更新设置成功')
+        message.success(t('settings.updateSuccess'))
+        // 更新模型信息
+        store.getConfig()
       })
     }
   } catch (error) {
@@ -112,7 +114,7 @@ const selectOutputPath = async () => {
     if (result.success) {
       updateSettings({ outputDir: result.data }, () => {
         store.updatePaths({  outputDir: result.data })
-        message.success('更新设置成功')
+        message.success(t('settings.updateSuccess'))
       })
     }
   } catch (error) {
@@ -124,7 +126,7 @@ const updateLanguage = (language: 'zh' | 'en') => {
     updateSettings({ language }, () => {
         i18nLocale.value = language
         store.updatePaths({ language })
-        message.success('更新设置成功')
+        message.success(t('settings.updateSuccess'))
     })
 }
 
@@ -143,7 +145,6 @@ const startDownload = async (modelInfo: ModelInfo) => {
         model.progress = data.progress
       }
     });
-    console.warn(modelInfo)
     
     // 启动下载
     const result = await window.ipcRenderer.invoke('dowloadModel', {
@@ -156,7 +157,7 @@ const startDownload = async (modelInfo: ModelInfo) => {
         model.status = 'downloaded'
         model.downloaded = true
     } else {
-        message.warning(result.message)
+      message.warning(result.message)
       console.error('下载失败:', result.message);
     }
   } catch (error) {

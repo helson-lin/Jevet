@@ -22,7 +22,8 @@ interface PROCESED_ITEM {
   base64Image: string;
 }
 
-import { ref, computed, h } from "vue";
+import { ref, computed, h, watchEffect } from "vue";
+import { useStore } from '../store/index';
 import Upload from "../components/Upload.vue";
 import { message, Modal, type UploadFile, type SelectProps } from "ant-design-vue";
 import { useI18n } from 'vue-i18n';
@@ -37,6 +38,7 @@ import {
 } from "@icon-park/vue-next";
 
 const { t } = useI18n();
+const store = useStore();
 const list = ref<UploadFile[]>([]);
 const loading = ref(false);
 const processImgs = ref<SHARP_RESULT[]>([]);
@@ -109,13 +111,20 @@ const previewList = computed(() => {
   }, []);
 });
 
-const supportedModels = [
-  'u2net',
-  'silueta',
-  'u2net_human_seg',
-  'u2net_cloth_seg',
-  'rmbg-1.4'
-];
+// const supportedModels = [
+//   'u2net',
+//   'silueta',
+//   'u2net_human_seg',
+//   'u2net_cloth_seg',
+//   'rmbg-1.4'
+// ];
+
+const supportedModels = computed(() => {
+  const models = store.settings.models || {};
+  return Object.keys(models)
+    .filter(key => models[key].downloaded)
+    .map(key => key.replace('.onnx', ''));
+});
 
 const options = ref<{
   model: string;
@@ -126,6 +135,12 @@ const options = ref<{
   quality: 80,
   outputformat: "png",
 });
+
+watchEffect(() => {
+  if (supportedModels.value.length > 0) {
+    options.value.model = supportedModels.value[0];
+  }
+})
 
 const supportedFormat = [
   "png",
@@ -329,7 +344,7 @@ const handleChange = (value: string) => {
       <div class="flex flex-col flex-1 border-box">
         <div class="w-full flex justify-between">
           <!-- 标题 -->
-          <label class="zinc-label">{{ t('imgProcess.upload') }}</label>
+          <label class="zinc-label dark:text-zinc-300">{{ t('imgProcess.upload') }}</label>
           <div class="flex items-center">
             <delete-one @click="deleteImgALl" class="ml-2 cursor-pointer" theme="outline" size="20" fill="#333"
               strokeLinejoin="bevel" strokeLinecap="square" />
@@ -338,14 +353,14 @@ const handleChange = (value: string) => {
         <div class="flex overflow-x-auto w-full box-border">
           <div class="flex w-max">
             <div
-              class="img-item flex-col mx-2 my-2 relative inline-flex backdrop-blur-md rounded-md items-center justify-center"
+              class="img-item dark:bg-gray-50 flex-col mx-2 my-2 relative inline-flex backdrop-blur-md rounded-md items-center justify-center"
               v-for="ii in previewList" :key="ii.uid">
               <div class="top-0 left-0 z-20 w-full px-2 py-1 mb-2 box-border flex flex-col backdrop-blur-md">
                 <span
-                  class="text-sm font-bold text-black w-full overflow-ellipsis whitespace-nowrap overflow-hidden max-w-32">{{
+                  class="text-sm font-bold text-black dark:text-zinc-300 w-full overflow-ellipsis whitespace-nowrap overflow-hidden max-w-32">{{
                   ii.filename }}</span>
                 <span
-                  class="text-sm text-black w-full overflow-ellipsis whitespace-nowrap overflow-hidden inline-flex items-center">{{
+                  class="text-sm text-black dark:text-zinc-300 w-full overflow-ellipsis whitespace-nowrap overflow-hidden inline-flex items-center">{{
                   ii.type }} <span class="font-bold text-lg mx-2">·</span>
                   {{ ii.size }}
                   <span v-if="ii.status === 1" class="inline-flex items-center">
@@ -366,15 +381,16 @@ const handleChange = (value: string) => {
                       size="20" fill="#fff" strokeLinejoin="bevel" strokeLinecap="square" />
                   </template>
                 </a-image>
-                <a-tag class="absolute right-2 bottom-2 z-20" color="green" v-if="ii.status === 1">
-                  {{ t('removeBg.processed') }}
-                </a-tag>
                 <div
                   class="loading-mask absolute w-full h-full top-0 left-0 flex items-center justify-center backdrop-blur-sm rounded"
                   v-if="loading">
                   <a-spin />
                 </div>
               </div>
+              <!-- 图片被处理了 -->
+              <a-tag class="absolute right-2 bottom-2 z-20" color="green" v-if="ii.status === 1">
+                  {{ t('removeBg.processed') }}
+                </a-tag>
             </div>
           </div>
         </div>
@@ -427,5 +443,9 @@ const handleChange = (value: string) => {
 
 .img-item {
   background: rgba(0, 0, 0, 0.1);
+}
+
+.dark .img-item {
+  background: rgba(255, 255, 255, 0.1);
 }
 </style>

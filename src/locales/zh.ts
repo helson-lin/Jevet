@@ -17,7 +17,10 @@ export default {
     downloadSuccess: '模型下载成功',
     downloadFailed: '模型下载失败',
     pathUpdateSuccess: '路径更新成功',
-    pathUpdateFailed: '路径更新失败'
+    pathUpdateFailed: '路径更新失败',
+    updateSuccess: "更新设置成功",
+    license: "许可证",
+    homepage: "主页"
   },
   imgProcess: {
     upload: '所有图片',

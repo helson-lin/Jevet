@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, shell } from 'electron';
+import { BrowserWindow, ipcMain, nativeTheme, shell } from 'electron';
 import { VITE_DEV_SERVER_URL } from '../config';
 
 // window窗口处理
@@ -35,5 +35,11 @@ export function setupWindowHandlers(preload: string, indexHtml: string) {
     if (url.startsWith('https://') || url.startsWith('http://')) {
       await shell.openExternal(url);
     }
+  });
+
+  ipcMain.handle('update-theme', (_, theme) => {
+    // 使用 nativeTheme 全局设置主题
+    nativeTheme.themeSource = theme === 'dark' ? 'dark' : 'light';
+    return true;
   });
 } 

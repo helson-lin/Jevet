@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import sharp from 'sharp';
 import * as png2icns from 'png2icons';
 import * as ort from 'onnxruntime-node'
-import { MODEL_OPTION, type ModelOptionItem } from './config/index'
+import { MODEL_OPTION, type ModelOptionItem, getConfig } from './config/index'
 
 interface IMG_ITEM {
   buffer: ArrayBuffer;
@@ -175,6 +175,9 @@ function getModelOption (modelName): ModelOptionItem {
       return {
           width: 320,
           height: 320,
+          size: 'unkown',
+          license: 'unkown',
+          homepage: 'unkown',
           feedInput: 'input.1'
       }
   }
@@ -197,7 +200,10 @@ async function removeBg(
       `removebg-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${inputOptions.outputformat}`
     );
     // 1. 加载 ONNX 模型
-    const modelPath = path.join(process.cwd(), `model/${inputOptions.model || 'u2net'}.onnx`);
+    const config = getConfig();
+    const modelDir = config.data.modelDir;
+    const modelDirPath = modelDir || path.join(process.cwd(), 'model');
+    const modelPath = path.join(modelDirPath, `${inputOptions.model || 'u2net'}.onnx`);
     const session = await ort.InferenceSession.create(modelPath);
     console.log("模型加载完成");
     // 获取模型的名称

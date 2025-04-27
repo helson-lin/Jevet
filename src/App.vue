@@ -3,7 +3,7 @@ import { useRouter, useRoute } from 'vue-router';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import { theme } from 'ant-design-vue';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useColorMode, useToggle } from '@vueuse/core';
 import { useStore  } from './store/index'
 import Icon from './components/Icon.vue';
@@ -14,6 +14,11 @@ const store = useStore()
 const locale = ref(enUS)
 const currentLang = ref('en')
 const mode = useColorMode()
+
+// 监听主题变化，同步更新 Electron 窗口主题
+watch(() => mode.value, (newMode) => {
+  window.ipcRenderer.invoke('update-theme', newMode);
+}, { immediate: true })
 
 const toggleDark = () => {
   if (mode.value === 'dark') {
@@ -44,6 +49,7 @@ const menu: {
 onMounted(async () => {
   const success  = await store.getConfig()
   if (success) {
+      console.warn(store.language)
       locale.value = store.language === 'en' ? enUS : zhCN
       currentLang.value = store.language
   }

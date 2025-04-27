@@ -139,9 +139,11 @@ const supportedFormat = [
 const qualityDisabled = ["gif", "icns", "ico"];
 const resizeDisabled = ["icns", "ico"];
 
-const noticeMap = {
+const noticeMap: {
+  [key: string]: string;
+} = {
   icns: "icns 格式无法调整尺寸和压缩率,其他参数无效",
-  ico: "ico为 windows 程序图标格式",
+  ico: "ico为 windows 程序图标格式"
 };
 
 const disabledResize = computed(() =>
@@ -386,7 +388,7 @@ const processIMG = async () => {
               <div class="img-preview relative w-full h-full flex items-center justify-center">
                 <a-image class="relative" :preview="{ visible: false }" :width="'max-content'" :height="120"
                   :src="ii.preview" alt="image">
-                  <template #previewMask class="w-full h-full">
+                  <template #previewMask>
                       <Icon name="delete-one" light="#fff"  @click="deleteImg(index)" class="ml-2" strokeLinejoin="bevel" strokeLinecap="square" />
                       <Icon name="preview-open" light="#fff"  @click="previewImg(ii)" class="ml-2"
                       strokeLinejoin="bevel" strokeLinecap="square" />
@@ -452,7 +454,7 @@ const processIMG = async () => {
             </div>
           </div>
           <div class="notice text-xs pl-2 mt-2 text-gray-400 block"
-            v-if="noticeMap[options.outputformat as keyof typeof noticeMap]">
+            v-if="noticeMap[options.outputformat]">
             {{ t(`options.notice.${options.outputformat}`) }}
           </div>
         </div>
@@ -472,5 +474,8 @@ const processIMG = async () => {
 
 .img-item {
   background: rgba(0, 0, 0, 0.1);
+}
+.dark .img-item {
+  background: rgba(255, 255, 255, 0.1);
 }
 </style>

@@ -13,6 +13,7 @@ import {
     ArrowRight,
     FolderOpen,
     Info,
+    Upload,
     Download,
     BrowserSafari
 } from "@icon-park/vue-next";
@@ -34,6 +35,7 @@ const icons = {
     ArrowRight,
     FolderOpen,
     Info,
+    Upload,
     Download,
     BrowserSafari
 };

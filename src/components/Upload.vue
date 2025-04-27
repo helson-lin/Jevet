@@ -2,9 +2,7 @@
 import { ref, computed, defineEmits, defineProps } from "vue";
 import { message } from "ant-design-vue";
 import { useI18n } from 'vue-i18n';
-import type { UploadChangeParam, UploadProps } from 'ant-design-vue';
-import { PlusOutlined, LoadingOutlined } from "@ant-design/icons-vue";
-import { Upload } from '@icon-park/vue-next'
+import Icon from "./Icon.vue";
 
 const { t } = useI18n();
 
@@ -60,7 +58,7 @@ const beforeUpload = (file: any) => {
     >
       <div class="w-full h-48 flex flex-col items-center justify-center">
         <loading-outlined v-if="loading"></loading-outlined>
-        <upload v-else theme="outline" size="40" fill="#333" strokeLinejoin="bevel" strokeLinecap="square"/>
+        <Icon name="upload" size="40" />
         <div class="ant-upload-text mt-4">{{ t('upload.dragText') }}</div>
       </div>
     </a-upload-dragger>

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from "electron";
+import { app, BrowserWindow, nativeTheme, ipcMain, shell } from "electron";
 import path from "node:path";
 import os from "node:os";
 import fs from 'node:fs';
@@ -60,7 +60,6 @@ app.whenReady().then(() => {
   setupWindowHandlers(preload, indexHtml);
   setupFileHandlers();
   setupImageHandlers();
-
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
