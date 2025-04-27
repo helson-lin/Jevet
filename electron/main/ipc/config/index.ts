@@ -152,7 +152,7 @@ export function getConfig (): {
 // 更新配置
 export function updateConfig (options: Partial<AppOptions>):  {
     success: boolean;
-    data: string | null;
+    data: AppOptions | null;
     error: null | Error;
 } {
     try {
@@ -164,8 +164,8 @@ export function updateConfig (options: Partial<AppOptions>):  {
                 error: res.error
             }
         } else {
-            const data = res.data;
-            const localOptions = JSON.parse(data);
+
+            const localOptions = res.data;
             const mergeOptions = Object.assign(localOptions, options)
             // 写入本地
             fs.writeFileSync(res.path, JSON.stringify(mergeOptions, null, 2));
@@ -182,4 +182,19 @@ export function updateConfig (options: Partial<AppOptions>):  {
             success: false
         }
     }
+}
+
+export function getModelOption(modelName: string): ModelOptionItem {
+    const option = MODEL_OPTION[modelName];
+    if (!option) {
+        return {
+            width: 320,
+            height: 320,
+            size: 'unkown',
+            license: 'unkown',
+            homepage: '',
+            feedInput: 'input.1'
+        }; // 默认返回 u2net 的配置
+    }
+    return option;
 }

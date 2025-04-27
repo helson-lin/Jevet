@@ -131,9 +131,7 @@ const supportedFormat = [
   "jpeg",
   "webp",
   "gif",
-  "jp2",
   "tiff",
-  "heif",
   "icns",
   "ico",
 ];
@@ -155,8 +153,7 @@ const showQuality = computed(
 );
 
 // 删除图片
-const deleteImg = (item: PROCESED_ITEM) => {
-  const imgIndex = list.value.findIndex((item) => item.uid === item.uid);
+const deleteImg = (imgIndex: number) => {
   if (imgIndex !== -1) {
     list.value.splice(imgIndex, 1);
     message.success(t('imgProcess.deleteImgSuccess'));
@@ -371,7 +368,7 @@ const processIMG = async () => {
           <div class="flex w-max">
             <div
               class="img-item flex-col mx-2 my-2 relative inline-flex backdrop-blur-md rounded-md items-center justify-center"
-              v-for="ii in previewList" :key="ii.uid">
+              v-for="(ii, index) in previewList" :key="ii.uid">
               <div class="top-0 left-0 z-20 w-full px-2 py-1 box-border flex flex-col backdrop-blur-md">
                 <span
                   class="text-sm font-bold text-black dark:text-zinc-300 w-full overflow-ellipsis whitespace-nowrap overflow-hidden max-w-32">{{
@@ -390,7 +387,7 @@ const processIMG = async () => {
                 <a-image class="relative" :preview="{ visible: false }" :width="'max-content'" :height="120"
                   :src="ii.preview" alt="image">
                   <template #previewMask class="w-full h-full">
-                      <Icon name="delete-one" light="#fff"  @click="deleteImg(ii)" class="ml-2" strokeLinejoin="bevel" strokeLinecap="square" />
+                      <Icon name="delete-one" light="#fff"  @click="deleteImg(index)" class="ml-2" strokeLinejoin="bevel" strokeLinecap="square" />
                       <Icon name="preview-open" light="#fff"  @click="previewImg(ii)" class="ml-2"
                       strokeLinejoin="bevel" strokeLinecap="square" />
                       <Icon name="export" light="#fff" v-if="ii.status === 1" @click="exportIMG(ii.outputPath)" class="ml-2" theme="outline"

@@ -4,7 +4,6 @@ import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import { theme } from 'ant-design-vue';
 import { onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useColorMode } from '@vueuse/core';
 import { useStore  } from './store/index'
 import Icon from './components/Icon.vue';
@@ -13,7 +12,6 @@ const mode = useColorMode()
 const route = useRoute()
 const router = useRouter()
 const store = useStore()
-const { locale: i18nLocale } = useI18n()
 const locale = ref(enUS)
 const currentLang = ref('en')
 const menu: {
@@ -39,7 +37,6 @@ onMounted(async () => {
       locale.value = store.language === 'en' ? enUS : zhCN
       currentLang.value = store.language
       mode.value = store.theme
-      console.warn('mounted')
   }
 })
 
@@ -57,20 +54,6 @@ const openGithub = () => {
 // 打开设置
 const openSetting = () => {
   router.push({ path: '/setting' })
-}
-
-// 切换语言
-const toggleLanguage = () => {
-  if (currentLang.value === 'zh') {
-    locale.value = enUS;
-    currentLang.value = 'en';
-    i18nLocale.value = 'en';
-  } else {
-    locale.value = zhCN;
-    currentLang.value = 'zh';
-    i18nLocale.value = 'zh';
-  }
-  localStorage.setItem('language', currentLang.value);
 }
 
 const jumpHome = () => router.push({ path: '/' })
@@ -107,16 +90,13 @@ const jumpHome = () => router.push({ path: '/' })
         <button class="rounded-full mb-2 w-8 h-8 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors duration-200" @click="setDark">
           <Icon name="moon" :size="20" />
         </button>
-        <button class="rounded-full mb-2 w-8 h-8 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors duration-200" @click="toggleLanguage">
-          <Icon name="translation" :size="20" />
-        </button>
         <button class="rounded-full mb-2 w-8 h-8 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors duration-200" @click="openSetting">
           <Icon name="setting-two" :size="20" />
         </button>
       </div>
     </div>
   </div>
-  <div class="flex-1 h-full">
+  <div class="flex-1 w-full h-full overflow-hidden">
     <router-view></router-view>  
   </div>
   </a-config-provider>

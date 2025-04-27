@@ -201,20 +201,23 @@ async function removeBg(
     const session = await ort.InferenceSession.create(modelPath);
     console.log("模型加载完成");
     // 获取模型的名称
-    const filename = path.basename(modelPath); // 返回 'my_file.txt'
+    const filename = path.basename(modelPath);
     // 通过模型的名称获取模型的配置信息
     const options = getModelOption(filename);
-    // 2. 读取图像并调整大小
+    
+    // 2. 读取图像并调整大小，确保转换为RGB格式
     const imageBuffer = await sharp(inputBuffer)
-    .resize(options.width, options.height)
-    .raw() // 获取原始像素数据
-    .toBuffer({ resolveWithObject: true });
+      .resize(options.width, options.height)
+      .removeAlpha()  // 移除 alpha 通道
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+      
     const { data, info } = imageBuffer;
     const { width, height, channels } = info;
 
     // 3. 检查通道数
     if (channels !== 3) {
-        throw new Error(`Expected 3 channels (RGB), but got ${channels}`);
+        console.warn(`Warning: Expected 3 channels (RGB), but got ${channels}. Attempting to continue...`);
     }
 
     // 4. 预处理图像数据

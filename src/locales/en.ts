@@ -5,7 +5,8 @@ export default {
     github: 'View on GitHub'
   },
   settings: {
-    paths: 'Path Settings',
+    paths: 'Base Settings',
+    language: 'Language',
     modelPath: 'Model Directory',
     outputPath: 'Output Directory',
     selectModelPath: 'Select model storage location',
@@ -14,7 +15,9 @@ export default {
     modelManagement: 'Model Management',
     download: 'Download',
     downloadSuccess: 'Model downloaded successfully',
-    downloadFailed: 'Failed to download model'
+    downloadFailed: 'Failed to download model',
+    pathUpdateSuccess: 'Path updated successfully',
+    pathUpdateFailed: 'Failed to update path'
   },
   imgProcess: {
     upload: 'Upload Images',
@@ -64,5 +67,11 @@ export default {
       icns: 'ICNS format cannot adjust size and compression ratio, other parameters are invalid',
       ico: 'ICO is the Windows program icon format'
     }
+  },
+  upload: {
+    imageOnly: 'You can only upload image files!',
+    sizeLimitError: 'Image must be smaller than 100MB!',
+    formatNotAllowed: 'ICNS and ICO files are not allowed!',
+    dragText: 'Click or drag files to upload'
   }
 } 

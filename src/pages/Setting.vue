@@ -5,7 +5,7 @@ import { FolderOpen, Download, Loading, CheckOne } from '@icon-park/vue-next';
 import { message, type UploadProps } from 'ant-design-vue';
 import { useStore } from '../store/index';
 import Icon from '../components/Icon.vue';
-const { t } = useI18n();
+const { t, locale: i18nLocale } = useI18n();
 
 interface ModelInfo {
   id: string;
@@ -78,7 +78,6 @@ const setModelInfo = (modelsOptions: ModelOption) => {
 
 watchEffect(() => {
     if (settings) {
-        console.warn(settings.value)
         setModelInfo(settings.value.models)
     }
 })
@@ -88,7 +87,9 @@ const selectModelPath = async () => {
     const result = await window.ipcRenderer.invoke('select-directory', { title: t('settings.modelPath'), buttonLabel: t('settings.selectModelPath') });
     if (result.success) {
       updateSettings({ modelDir: result.data }, () => {
-        settings.value.modelDir = result.data;
+        // 更新设置信息
+        store.updatePaths({  modelDir: result.data })
+        message.success('更新设置成功')
       })
     }
   } catch (error) {
@@ -110,13 +111,22 @@ const selectOutputPath = async () => {
     const result = await window.ipcRenderer.invoke('select-directory', { title: t('settings.outputPath'), buttonLabel: t('settings.selectOutputPath') });
     if (result.success) {
       updateSettings({ outputDir: result.data }, () => {
-        settings.value.outputDir = result.data;
+        store.updatePaths({  outputDir: result.data })
+        message.success('更新设置成功')
       })
     }
   } catch (error) {
     console.error('Failed to select directory:', error);
   }
 };
+
+const updateLanguage = (language: 'zh' | 'en') => {
+    updateSettings({ language }, () => {
+        i18nLocale.value = language
+        store.updatePaths({ language })
+        message.success('更新设置成功')
+    })
+}
 
 const openHomePage = (homepage: string) =>  window.ipcRenderer.invoke('open-external-url', homepage);
 
@@ -167,11 +177,25 @@ const cancelDownload = (modelId: string) => {
       <div class="space-y-6  pb-4">
         <!-- 路径设置 -->
         <section class="bg-white dark:bg-zinc-800  rounded-xl p-6 shadow-sm">
-          <h2 class="text-large font-semibold dark:text-zinc-300 text-gray-900 mb-6 flex items-center">
+          <h2 class="text-large font-semibold dark:text-zinc-300 text-gray-900 mb-4 flex items-center">
             {{ t('settings.paths') }}
           </h2>
           
           <div class="space-y-6">
+            <!-- 语言设置 -->
+            <div class="flex flex-col space-y-3">
+              <label class="text-sm font-medium text-gray-700 dark:text-zinc-300">{{ t('settings.language') }}</label>
+              <div class="flex space-x-3">
+                <a-select
+                  v-model:value="settings.language"
+                  class="w-full"
+                  @change="updateLanguage"
+                >
+                  <a-select-option value="en">English</a-select-option>
+                  <a-select-option value="zh">中文</a-select-option>
+                </a-select>
+              </div>
+            </div>
             <!-- 模型路径 -->
             <div class="flex flex-col space-y-3">
               <label class="text-sm font-medium text-gray-700 dark:text-zinc-300">{{ t('settings.modelPath') }}</label>
@@ -218,7 +242,7 @@ const cancelDownload = (modelId: string) => {
 
         <!-- 模型管理 -->
         <section class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm">
-          <h2 class="text-large font-semibold text-gray-900 dark:text-zinc-300 mb-6 flex items-center">
+          <h2 class="text-large font-semibold text-gray-900 dark:text-zinc-300 mb-4 flex items-center">
             {{ t('settings.modelManagement') }}
           </h2>
           

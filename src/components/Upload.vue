@@ -1,9 +1,12 @@
 <script lang="ts" setup>
 import { ref, computed, defineEmits, defineProps } from "vue";
 import { message } from "ant-design-vue";
+import { useI18n } from 'vue-i18n';
 import type { UploadChangeParam, UploadProps } from 'ant-design-vue';
 import { PlusOutlined, LoadingOutlined } from "@ant-design/icons-vue";
-import {  Upload } from '@icon-park/vue-next'
+import { Upload } from '@icon-park/vue-next'
+
+const { t } = useI18n();
 
 const props = defineProps({
     list: {
@@ -25,13 +28,20 @@ const loading = ref<boolean>(false);
 
 const beforeUpload = (file: any) => {
   const isJpgOrPng = file.type.startsWith('image')
+  const isIcnsOrIco = file.name.toLowerCase().endsWith('.icns') || file.name.toLowerCase().endsWith('.ico')
+  
+  if (isIcnsOrIco) {
+    message.error(t('upload.formatNotAllowed'));
+    return false;
+  }
+  
   if (!isJpgOrPng) {
-    message.error('You can only upload image file!');
+    message.error(t('upload.imageOnly'));
     return false;
   }
   const isLt2M = file.size / 1024 / 1024 < 100;
   if (!isLt2M) {
-    message.error('Image must smaller than 100MB!');
+    message.error(t('upload.sizeLimitError'));
     return false;
   }
   // todo: upload
@@ -51,7 +61,7 @@ const beforeUpload = (file: any) => {
       <div class="w-full h-48 flex flex-col items-center justify-center">
         <loading-outlined v-if="loading"></loading-outlined>
         <upload v-else theme="outline" size="40" fill="#333" strokeLinejoin="bevel" strokeLinecap="square"/>
-        <div class="ant-upload-text mt-4">拖拽文件到这里或者点击上传</div>
+        <div class="ant-upload-text mt-4">{{ t('upload.dragText') }}</div>
       </div>
     </a-upload-dragger>
   </div>

@@ -5,7 +5,8 @@ export default {
     github: '查看 GitHub'
   },
   settings: {
-    paths: '路径设置',
+    paths: '基础设置',
+    language: '语言',
     modelPath: '模型目录',
     outputPath: '输出目录',
     selectModelPath: '选择模型存储位置',
@@ -14,15 +15,17 @@ export default {
     modelManagement: '模型管理',
     download: '下载',
     downloadSuccess: '模型下载成功',
-    downloadFailed: '模型下载失败'
+    downloadFailed: '模型下载失败',
+    pathUpdateSuccess: '路径更新成功',
+    pathUpdateFailed: '路径更新失败'
   },
   imgProcess: {
-    upload: '上传图片',
+    upload: '所有图片',
     deleteAll: '删除全部',
     processed: '已处理',
     exportAll: '全部导出',
     batchProcess: '批量处理',
-    noImages: '没有需要处理的图片，上传点图片吧',
+    noImages: '没有需要处理的图片，上传点图片吧！',
     deleteConfirm: '确定删除所有的图片？',
     delete: '删除',
     confirm: '确定',
@@ -56,7 +59,7 @@ export default {
     originalSize: '原始尺寸',
     dimensions: '宽高',
     keepExif: 'EXIF保留',
-    compression: '压缩',
+    compression: '压缩质量',
     outputFormat: '输出格式',
     width: '宽度',
     height: '高度',
@@ -64,5 +67,11 @@ export default {
       icns: 'icns 格式无法调整尺寸和压缩率,其他参数无效',
       ico: 'ico为 windows 程序图标格式'
     }
+  },
+  upload: {
+    imageOnly: '只能上传图片文件！',
+    sizeLimitError: '图片必须小于100MB！',
+    formatNotAllowed: '不支持上传 ICNS 和 ICO 格式文件！',
+    dragText: '拖拽文件到这里或者点击上传'
   }
 } 

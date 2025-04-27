@@ -1,5 +1,6 @@
-import { AppOptions } from 'electron/main/ipc/config'
+import { AppOptions, updateConfig } from 'electron/main/ipc/config'
 import { defineStore } from 'pinia'
+import { message } from 'ant-design-vue'
 
 interface AppConfig {
     theme: 'auto' | 'light' | 'dark'
@@ -53,13 +54,25 @@ export const useStore = defineStore('main', {
                     this.modelDir = config.modelDir
                     this.outputDir = config.outputDir
                     this.models = config.models
-                    console.warn('this', this.outputDir, config)
                     return true
                 }
                 return false
             } catch (error) {
                 console.error('Failed to get config:', error)
                 return false
+            }
+        },
+        
+        updatePaths(paths: { modelDir?: string; outputDir?: string, language?: AppConfig['language']
+        }) {
+            if (paths.modelDir !== undefined) {
+                this.modelDir = paths.modelDir
+            }
+            if (paths.outputDir !== undefined) {
+                this.outputDir = paths.outputDir
+            }
+            if (paths.language !== undefined) {
+                this.language = paths.language
             }
         }
     }

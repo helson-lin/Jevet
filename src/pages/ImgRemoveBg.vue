@@ -98,9 +98,9 @@ const previewList = computed(() => {
         preview: URL.createObjectURL(val.originFileObj as File),
         compressionRatio: val.originFileObj?.size
           ? calculateCompressionRatio(
-              val.originFileObj?.size,
-              isInResult?.fileSize
-            )
+            val.originFileObj?.size,
+            isInResult?.fileSize
+          )
           : "",
         base64Image: isInResult?.base64Image,
       });
@@ -110,11 +110,11 @@ const previewList = computed(() => {
 });
 
 const supportedModels = [
-    'u2net',
-    'silueta',
-    'u2net_human_seg',
-    'u2net_cloth_seg',
-    'model'
+  'u2net',
+  'silueta',
+  'u2net_human_seg',
+  'u2net_cloth_seg',
+  'rmbg-1.4'
 ];
 
 const options = ref<{
@@ -156,15 +156,15 @@ const deleteImgALl = () => {
     icon: h('div', {
       class: 'flex items-center'
     }, [
-      h(Info, {  
+      h(Info, {
         theme: 'outline',
         size: '27',
         strokeLinejoin: 'bevel',
         strokeLinecap: 'square',
         fill: '#FF4D4F',
         class: 'mr-2'
-    }),
-    h('span', { class: 'inline-flex text-base font-bold'}, t('imgProcess.delete'))
+      }),
+      h('span', { class: 'inline-flex text-base font-bold' }, t('imgProcess.delete'))
     ]),
     content: t('imgProcess.deleteConfirm'),
     okText: t('imgProcess.confirm'),
@@ -174,7 +174,7 @@ const deleteImgALl = () => {
       list.value = [];
       message.success(t('imgProcess.deleteSuccess'));
     },
-    onCancel() {},
+    onCancel() { },
   });
 };
 
@@ -331,100 +331,47 @@ const handleChange = (value: string) => {
           <!-- 标题 -->
           <label class="zinc-label">{{ t('imgProcess.upload') }}</label>
           <div class="flex items-center">
-            <delete-one
-              @click="deleteImgALl"
-              class="ml-2 cursor-pointer"
-              theme="outline"
-              size="20"
-              fill="#333"
-              strokeLinejoin="bevel"
-              strokeLinecap="square"
-            />
+            <delete-one @click="deleteImgALl" class="ml-2 cursor-pointer" theme="outline" size="20" fill="#333"
+              strokeLinejoin="bevel" strokeLinecap="square" />
           </div>
         </div>
         <div class="flex overflow-x-auto w-full box-border">
           <div class="flex w-max">
             <div
               class="img-item flex-col mx-2 my-2 relative inline-flex backdrop-blur-md rounded-md items-center justify-center"
-              v-for="ii in previewList"
-              :key="ii.uid"
-            >
-              <div
-                class="top-0 left-0 z-20 w-full px-2 py-1 mb-2 box-border flex flex-col backdrop-blur-md"
-              >
+              v-for="ii in previewList" :key="ii.uid">
+              <div class="top-0 left-0 z-20 w-full px-2 py-1 mb-2 box-border flex flex-col backdrop-blur-md">
                 <span
-                  class="text-sm font-bold text-black w-full overflow-ellipsis whitespace-nowrap overflow-hidden max-w-32"
-                  >{{ ii.filename }}</span
-                >
+                  class="text-sm font-bold text-black w-full overflow-ellipsis whitespace-nowrap overflow-hidden max-w-32">{{
+                  ii.filename }}</span>
                 <span
-                  class="text-sm text-black w-full overflow-ellipsis whitespace-nowrap overflow-hidden inline-flex items-center"
-                  >{{ ii.type }} <span class="font-bold text-lg mx-2">·</span>
+                  class="text-sm text-black w-full overflow-ellipsis whitespace-nowrap overflow-hidden inline-flex items-center">{{
+                  ii.type }} <span class="font-bold text-lg mx-2">·</span>
                   {{ ii.size }}
                   <span v-if="ii.status === 1" class="inline-flex items-center">
-                    <arrow-right
-                      class="mx-2"
-                      theme="outline"
-                      size="15"
-                      :fill="ii.decrease ? '#00b96b' : '#FF523F'"
-                      strokeLinejoin="bevel"
-                      strokeLinecap="square"
-                    />
-                    {{ ii.handledSize }}</span
-                  ></span
-                >
+                    <arrow-right class="mx-2" theme="outline" size="15" :fill="ii.decrease ? '#00b96b' : '#FF523F'"
+                      strokeLinejoin="bevel" strokeLinecap="square" />
+                    {{ ii.handledSize }}</span></span>
               </div>
               <!-- 图片预览 -->
               <div class="img-preview relative">
-                <a-image
-                  class="relative"
-                  :preview="{ visible: false }"
-                  :width="'max-content'"
-                  :height="120"
-                  :src="ii.preview"
-                  alt="image"
-                >
+                <a-image class="relative" :preview="{ visible: false }" :width="'max-content'" :height="120"
+                  :src="ii.preview" alt="image">
                   <template #previewMask>
-                    <delete-one
-                      @click="deleteImg(ii)"
-                      class="ml-2"
-                      theme="outline"
-                      size="20"
-                      fill="#fff"
-                      strokeLinejoin="bevel"
-                      strokeLinecap="square"
-                    />
-                    <preview-open
-                      @click="previewImg(ii)"
-                      class="ml-2"
-                      theme="outline"
-                      size="20"
-                      fill="#fff"
-                      strokeLinejoin="bevel"
-                      strokeLinecap="square"
-                    />
-                    <export
-                      v-if="ii.status === 1"
-                      @click="exportIMG(ii.outputPath)"
-                      class="ml-2"
-                      theme="outline"
-                      size="20"
-                      fill="#fff"
-                      strokeLinejoin="bevel"
-                      strokeLinecap="square"
-                    />
+                    <delete-one @click="deleteImg(ii)" class="ml-2" theme="outline" size="20" fill="#fff"
+                      strokeLinejoin="bevel" strokeLinecap="square" />
+                    <preview-open @click="previewImg(ii)" class="ml-2" theme="outline" size="20" fill="#fff"
+                      strokeLinejoin="bevel" strokeLinecap="square" />
+                    <export v-if="ii.status === 1" @click="exportIMG(ii.outputPath)" class="ml-2" theme="outline"
+                      size="20" fill="#fff" strokeLinejoin="bevel" strokeLinecap="square" />
                   </template>
                 </a-image>
-                <a-tag
-                  class="absolute right-2 bottom-2 z-20"
-                  color="green"
-                  v-if="ii.status === 1"
-                >
+                <a-tag class="absolute right-2 bottom-2 z-20" color="green" v-if="ii.status === 1">
                   {{ t('removeBg.processed') }}
                 </a-tag>
                 <div
                   class="loading-mask absolute w-full h-full top-0 left-0 flex items-center justify-center backdrop-blur-sm rounded"
-                  v-if="loading"
-                >
+                  v-if="loading">
                   <a-spin />
                 </div>
               </div>
@@ -439,51 +386,28 @@ const handleChange = (value: string) => {
         <div class="flex flex-col py-2">
           <div class="w-full flex mb-2 justify-between">
             <label class="mr-2 zinc-label flex-1 dark:text-zinc-300">{{ t('removeBg.model') }}</label>
-            <a-select
-              v-model:value="options.model"
-              class="w-44"
-            >
-              <a-select-option
-                v-for="model in supportedModels"
-                :key="model"
-                :value="model"
-                >{{ model.toUpperCase() }}</a-select-option
-              >
+            <a-select v-model:value="options.model" class="w-44">
+              <a-select-option v-for="model in supportedModels" :key="model" :value="model">{{ model.toUpperCase()
+                }}</a-select-option>
             </a-select>
           </div>
-          </div>
+        </div>
         <div class="w-full flex mb-2 justify-between">
           <label class="mr-2 zinc-label flex-1 dark:text-zinc-300">{{ t('removeBg.compression') }}</label>
-          <a-input-number
-             class="w-44"
-            :disabled="!showQuality"
-            v-model:value="options.quality"
-            :min="1"
-            :max="100"
-          >
+          <a-input-number class="w-44" :disabled="!showQuality" v-model:value="options.quality" :min="1" :max="100">
             <template #addonAfter>%</template>
           </a-input-number>
         </div>
         <div class="flex flex-col py-2">
           <div class="w-full flex mb-2 justify-between">
             <label class="mr-2 zinc-label flex-1 dark:text-zinc-300">{{ t('removeBg.outputFormat') }}</label>
-            <a-select
-              v-model:value="options.outputformat"
-                class="w-44"
-              @change="handleChange"
-            >
-              <a-select-option
-                v-for="format in supportedFormat"
-                :key="format"
-                :value="format"
-                >{{ format.toUpperCase() }}</a-select-option
-              >
+            <a-select v-model:value="options.outputformat" class="w-44" @change="handleChange">
+              <a-select-option v-for="format in supportedFormat" :key="format" :value="format">{{ format.toUpperCase()
+                }}</a-select-option>
             </a-select>
           </div>
-          <div
-            class="notice text-xs pl-2 mt-2 text-gray-400 block dark:text-zinc-300"
-            v-if="options.outputformat === 'icns' || options.outputformat === 'ico'"
-          >
+          <div class="notice text-xs pl-2 mt-2 text-gray-400 block dark:text-zinc-300"
+            v-if="options.outputformat === 'icns' || options.outputformat === 'ico'">
             {{ t(`removeBg.notice.${options.outputformat}`) }}
           </div>
         </div>
@@ -500,6 +424,7 @@ const handleChange = (value: string) => {
 .loading-mask {
   background: rgba(0, 0, 0, 0.1);
 }
+
 .img-item {
   background: rgba(0, 0, 0, 0.1);
 }
