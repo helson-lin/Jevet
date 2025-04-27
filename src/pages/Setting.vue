@@ -255,7 +255,7 @@ const cancelDownload = (modelId: string) => {
               <div class="flex items-start justify-between">
                 <div class="space-y-2">
                   <h3 class="font-medium text-gray-900 dark:text-zinc-300">{{ model.name }}</h3>
-                  <p class="text-sm text-gray-500 dark:text-zinc-300 flex flex-col items-start">
+                  <div class="text-sm text-gray-500 dark:text-zinc-300 flex flex-col items-start">
                     <div class="flex items-center">
                             <span class="inline-block w-2 h-2 rounded-full mr-2"
                             :class="{
@@ -272,7 +272,7 @@ const cancelDownload = (modelId: string) => {
                             Homepage: <Icon name="BrowserSafari" size="18" class="ml-2"/>
                         </a>
                     </div>
-                  </p>
+                  </div>
                 </div>
                 
                 <div class="flex items-center">

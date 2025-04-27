@@ -4,16 +4,26 @@ import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import { theme } from 'ant-design-vue';
 import { onMounted, ref } from 'vue';
-import { useColorMode } from '@vueuse/core';
+import { useColorMode, useToggle } from '@vueuse/core';
 import { useStore  } from './store/index'
 import Icon from './components/Icon.vue';
 
-const mode = useColorMode()
 const route = useRoute()
 const router = useRouter()
 const store = useStore()
 const locale = ref(enUS)
 const currentLang = ref('en')
+const mode = useColorMode()
+
+const toggleDark = () => {
+  if (mode.value === 'dark') {
+    mode.value = 'light'
+  } else {
+    mode.value = 'dark'
+  }
+  useToggle(mode.value === 'dark')
+}
+
 const menu: {
   iconName: string;
   click: Function;
@@ -36,14 +46,8 @@ onMounted(async () => {
   if (success) {
       locale.value = store.language === 'en' ? enUS : zhCN
       currentLang.value = store.language
-      mode.value = store.theme
   }
 })
-
-const setDark = () => { 
-  if (mode.value === 'dark') mode.value = 'light' 
-  else mode.value = 'dark'
-}
 
 const openGithub = () => {
   // 使用浏览器打开 github
@@ -78,7 +82,7 @@ const jumpHome = () => router.push({ path: '/' })
       <!-- 快捷按钮 -->
       <div class="w-full flex flex-col flex-1 items-center py-2">
         <div class="mb-2 hover:rounded-full w-8 h-8 hover:bg-gray-300 dark:hover:bg-zinc-800 flex items-center justify-center"
-        v-for="menuItem in menu" :key="menu.iconName" @click="menuItem.click()">
+        v-for="menuItem in menu" :key="menuItem.iconName" @click="menuItem.click()">
           <Icon :name="menuItem.iconName" :size="20" />
         </div>
       </div>
@@ -87,7 +91,7 @@ const jumpHome = () => router.push({ path: '/' })
         <button class="rounded-full mb-2 w-8 h-8 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors duration-200" @click="openGithub">
           <Icon name="github" :size="20" />
         </button>
-        <button class="rounded-full mb-2 w-8 h-8 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors duration-200" @click="setDark">
+        <button class="rounded-full mb-2 w-8 h-8 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors duration-200" @click="toggleDark()">
           <Icon name="moon" :size="20" />
         </button>
         <button class="rounded-full mb-2 w-8 h-8 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors duration-200" @click="openSetting">
