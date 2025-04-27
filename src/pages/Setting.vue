@@ -225,7 +225,7 @@ const cancelDownload = (modelId: string) => {
 
 <template>
   <div
-    class="setting bg-gray-200 dark:bg-zinc-800 w-full h-full overflow-y-auto py-4"
+    class="setting dark:bg-zinc-800 w-full h-full overflow-y-auto py-4"
   >
     <div class="max-w-3xl mx-auto h-full px-4 sm:px-6 lg:px-8">
       <div class="space-y-6 pb-4">
@@ -326,15 +326,15 @@ const cancelDownload = (modelId: string) => {
             <!-- 推理配置 -->
             <div class="flex flex-col space-y-3">
               <label class="text-sm font-medium text-gray-700 dark:text-zinc-300">{{ t('settings.inference') }}</label>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="flex items-center justify-between border rounded px-3 py-2">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border rounded px-3 border-zinc-200 dark:border-zinc-700 py-2">
+                <div class="flex items-center justify-between rounded px-3 py-2">
                   <span class="text-sm text-gray-700 dark:text-zinc-300">{{ t('settings.useGPU') }}</span>
                   <a-switch
                     :checked="settings.useGPU"
                     @change="(val: boolean) => updateSettings({ useGPU: val }, () => { store.getConfig(); message.success(t('settings.updateSuccess')) })"
                   />
                 </div>
-                <div class="flex items-center justify-between border rounded px-3 py-2">
+                <div class="flex items-center justify-between rounded px-3 py-2">
                   <span class="text-sm text-gray-700 dark:text-zinc-300">{{ t('settings.graphOptimizationLevel') }}</span>
                   <a-select
                     :value="settings.graphOptimizationLevel || 'basic'"
@@ -370,7 +370,7 @@ const cancelDownload = (modelId: string) => {
             </div>
           </div>
           <!-- 模型选择提示信息-->
-          <div class="text-sm text-gray-500 dark:text-zinc-300 flex flex-col items-start my-2 bg-amber-50 dark:bg-amber-900/20 p-2 rounded" v-if="models.length > 0">
+          <div class="text-sm text-gray-500 dark:text-zinc-300 flex flex-col items-start mb-2 bg-gray-150 dark:bg-amber-900/20 p-2 rounded" v-if="models.length > 0">
             <span v-html="t('settings.modelNotice')"></span>
           </div>
 

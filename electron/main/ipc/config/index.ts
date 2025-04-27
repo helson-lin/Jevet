@@ -43,7 +43,7 @@ export const MODEL_OPTION: ModelOption = {
     'bria-rmbg-2.0.onnx': {
         width: 1024,
         height: 1024,
-        size: '176MB',
+        size: '1.03GB',
         license: 'bria-rmbg-1.4',
         homepage: 'https://github.com/danielgatis/rembg',
         md5: '55913f5ac5540eb64a069204a8bee870', 
@@ -67,15 +67,6 @@ export const MODEL_OPTION: ModelOption = {
         md5: 'c09ddc2e0104f800e3e1bb4652583d1f',
         feedInput: 'input.1'
     },
-    'u2net_cloth_seg.onnx': {
-        width: 320,
-        height: 320,
-        size: '176MB',
-        license: 'MIT',
-        homepage: 'https://github.com/danielgatis/rembg',
-        md5: '2434d1f3cb744e0e49386c906e5a08bb',
-        feedInput: 'input.1'
-    },
     'silueta.onnx': {
         width: 320,
         height: 320,
@@ -97,7 +88,7 @@ export const MODEL_OPTION: ModelOption = {
     'isnet-general-use.onnx': {
         width: 1024,
         height: 1024,
-        size: '178.6MB',
+        size: '176MB',
         license: 'MIT',
         homepage: 'https://github.com/danielgatis/rembg',
         md5: '80bb0d6616a2085b2f264913e01fafa2',
