@@ -211,7 +211,7 @@ const handleChange: SelectProps["onChange"] = (value) => {
 const previewImg = (item: PROCESED_ITEM) => {
   const allResouces = previewList.value.map((item) => item.outputPath).join(",");
   // localStorage.setItem("allResouces", allResouces, );
-  window.ipcRenderer.invoke("open-win", `preview?url=${item.outputPath || item.preview}`);
+  window.ipcRenderer.invoke("open-win", `preview?url=${item.preview}&output=${item.outputPath}`);
 };
 
 const exportIMG = (filePath: string) => {

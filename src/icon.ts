@@ -15,7 +15,8 @@ import {
     Info,
     Upload,
     Download,
-    BrowserSafari
+    BrowserSafari,
+    TransferData,
 } from "@icon-park/vue-next";
 import type { App } from "vue";
 
@@ -37,7 +38,8 @@ const icons = {
     Info,
     Upload,
     Download,
-    BrowserSafari
+    BrowserSafari,
+    TransferData
 };
 
 // 创建插件

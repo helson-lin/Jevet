@@ -194,7 +194,7 @@ const deleteImgALl = () => {
 };
 
 const previewImg = (item: PROCESED_ITEM) => {
-  window.ipcRenderer.invoke("open-win", `preview?url=${item.outputPath}`);
+  window.ipcRenderer.invoke("open-win", `preview?url=${item.preview}&output=${item.outputPath}`);
 };
 
 const exportIMG = (filePath: string) => {

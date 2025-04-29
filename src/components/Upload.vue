@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref, computed, defineEmits, defineProps } from "vue";
-import { message } from "ant-design-vue";
+import { message, type UploadFile } from "ant-design-vue";
 import { useI18n } from 'vue-i18n';
 import Icon from "./Icon.vue";
 
@@ -14,13 +14,14 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:list'])
+const notAllow = ['icns', 'ico']
 const fileList = computed({
- set (value) {
-    emit('update:list', value)
- },
- get () {
+  set (value: UploadFile[]) {
+    emit('update:list', value.filter(i => !notAllow.some(j => i.name.toLowerCase().endsWith(j))))
+  },
+  get () {
     return props.list;
- }
+  }
 });
 const loading = ref<boolean>(false);
 
@@ -42,7 +43,6 @@ const beforeUpload = (file: any) => {
     message.error(t('upload.sizeLimitError'));
     return false;
   }
-  // todo: upload
   return false;
 };
 </script>
