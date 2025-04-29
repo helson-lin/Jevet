@@ -7,17 +7,19 @@ import { onMounted, ref, watch } from 'vue';
 import { useColorMode, useToggle } from '@vueuse/core';
 import { useStore } from './store/index'
 import Icon from './components/Icon.vue';
+import { useI18n } from 'vue-i18n';
 
 const route = useRoute()
 const router = useRouter()
 const store = useStore()
+const { locale: i18nLocale } = useI18n()
 const locale = ref(enUS)
 const currentLang = ref('en')
 const mode = useColorMode()
 
 // 监听主题变化，同步更新 Electron 窗口主题
 watch(() => mode.value, (newMode) => {
-  window.ipcRenderer.invoke('update-theme', newMode);
+  window.ipcRenderer.invoke('setNativeTheme', newMode);
 }, { immediate: true })
 
 const toggleDark = () => {
@@ -55,7 +57,16 @@ onMounted(async () => {
     console.warn(store.language)
     locale.value = store.language === 'en' ? enUS : zhCN
     currentLang.value = store.language
+    // 同步更新 i18n 的 locale
+    i18nLocale.value = store.language
   }
+})
+
+// 监听 store 中语言变化，同步更新 i18n locale
+watch(() => store.language, (newLanguage) => {
+  i18nLocale.value = newLanguage
+  locale.value = newLanguage === 'en' ? enUS : zhCN
+  currentLang.value = newLanguage
 })
 
 const openGithub = () => {

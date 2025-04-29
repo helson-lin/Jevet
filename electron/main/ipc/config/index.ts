@@ -1,4 +1,4 @@
-import { app } from "electron";
+import { app, ipcMain, nativeTheme } from "electron";
 import path from 'node:path';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
@@ -253,4 +253,31 @@ export function getModelOption(modelName: string): ModelOptionItem {
         }; // 默认返回 u2net 的配置
     }
     return option;
+}
+
+// 更新系统原生主题设置
+export function setupNativeTheme() {
+  ipcMain.handle('setNativeTheme', (_event, theme: 'dark' | 'light' | 'system') => {
+    if (theme === 'dark') {
+      nativeTheme.themeSource = 'dark';
+    } else if (theme === 'light') {
+      nativeTheme.themeSource = 'light';
+    } else {
+      nativeTheme.themeSource = 'system';
+    }
+    
+    return {
+      success: true,
+      currentTheme: nativeTheme.themeSource,
+      shouldUseDarkColors: nativeTheme.shouldUseDarkColors
+    };
+  });
+  
+  // 获取当前原生主题设置
+  ipcMain.handle('getNativeTheme', () => {
+    return {
+      themeSource: nativeTheme.themeSource,
+      shouldUseDarkColors: nativeTheme.shouldUseDarkColors
+    };
+  });
 }

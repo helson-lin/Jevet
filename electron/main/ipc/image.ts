@@ -20,11 +20,20 @@ interface ImageProcessOptions {
   exif: sharp.Exif;
   quality: number;
   outputformat: "png" | "jpg" | "jpeg" | "webp" | "gif" | "jp2" | "tiff" | "heif" | "icns" | "ico";
+  // 水印设置
+  watermark?: {
+    enabled: boolean;          // 是否启用水印
+    text: string;              // 水印文本
+    position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'; // 水印位置
+    fontSize: number;          // 字体大小
+    color: string;             // 水印颜色
+    opacity: number;           // 水印透明度
+  }
 }
 
 export function setupImageHandlers() {
   //  实现图片转码
-  ipcMain.handle("pi", async (_, arg: { imgs: IMG_ITEM[]; options?: ImageProcessOptions }) => {
+  ipcMain.handle("compress", async (_, arg: { imgs: IMG_ITEM[]; options?: ImageProcessOptions }) => {
     try {
       const { imgs, options } = arg;
       const processingPromises = imgs.map(async (imgItem) => {
@@ -55,6 +64,11 @@ export function setupImageHandlers() {
         if (options?.outputformat) {
           const baseOptions = { quality: options.quality || 100 };
           sharper = await processOutputFormat(sharper, options.outputformat, baseOptions);
+        }
+
+        // 处理水印
+        if (options?.watermark?.enabled && options.watermark.text) {
+          sharper = await addWatermark(sharper, options.watermark);
         }
 
         await sharper.toFile(outputPath);
@@ -322,4 +336,74 @@ async function removeBg(
     console.warn(e)
   }
 
+}
+
+/**
+ * 添加水印到图片
+ * @param sharper Sharp实例
+ * @param watermarkOptions 水印选项
+ */
+async function addWatermark(
+  sharper: sharp.Sharp, 
+  watermarkOptions: {
+    text: string;
+    position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
+    fontSize: number;
+    color: string;
+    opacity: number;
+  }
+): Promise<sharp.Sharp> {
+  // 获取图片尺寸
+  const metadata = await sharper.metadata();
+  const width = metadata.width || 800;
+  const height = metadata.height || 600;
+  
+  // 计算水印位置
+  let gravity: sharp.Gravity;
+  let x = 20;
+  let y = 20;
+  
+  switch (watermarkOptions.position) {
+    case 'top-left':
+      gravity = sharp.gravity.northwest;
+      break;
+    case 'top-right':
+      gravity = sharp.gravity.northeast;
+      break;
+    case 'bottom-left':
+      gravity = sharp.gravity.southwest;
+      break;
+    case 'bottom-right':
+      gravity = sharp.gravity.southeast;
+      break;
+    case 'center':
+      gravity = sharp.gravity.center;
+      break;
+    default:
+      gravity = sharp.gravity.southeast;
+  }
+  
+  // 创建水印SVG
+  const fontSize = watermarkOptions.fontSize || 24;
+  const color = watermarkOptions.color || 'white';
+  const opacity = watermarkOptions.opacity || 0.5;
+  
+  const svgText = `
+    <svg width="${width}" height="${height}">
+      <text 
+        x="${x}" 
+        y="${fontSize + y}" 
+        font-family="Arial, Helvetica, sans-serif" 
+        font-size="${fontSize}px"
+        fill="${color}" 
+        fill-opacity="${opacity}"
+      >${watermarkOptions.text}</text>
+    </svg>
+  `;
+  
+  // 添加水印
+  return sharper.composite([{
+    input: Buffer.from(svgText),
+    gravity: gravity
+  }]);
 }

@@ -2,7 +2,19 @@ export default {
   app: {
     title: 'Jevet',
     settings: '设置',
-    github: '查看 GitHub'
+    github: '查看 GitHub',
+    iconGenerator: '图标生成器',
+    iconGeneratorDesc: '编辑和生成您的应用图标'
+  },
+  home: {
+    imageCompression: '图片转码压缩',
+    imageCompressionDesc: '支持多种格式转换，包括PNG、JPG、WEBP等',
+    smartCutout: '智能抠图',
+    smartCutoutDesc: '一键抠除背景，支持人物、物品等多种场景',
+    aiExpand: 'AI 扩图',
+    aiExpandDesc: '智能扩展图片尺寸，保持画面完整性',
+    smartRetouch: '智能修图',
+    smartRetouchDesc: 'AI智能修图，自动优化图片质量'
   },
   settings: {
     paths: '基础设置',
@@ -75,12 +87,41 @@ export default {
     notice: {
       icns: 'icns 格式无法调整尺寸和压缩率,其他参数无效',
       ico: 'ico为 windows 程序图标格式'
-    }
+    },
+    watermark: '水印',
+    watermarkText: '水印文本',
+    watermarkTextPlaceholder: '输入水印文字',
+    watermarkPosition: '水印位置',
+    topLeft: '左上角',
+    topRight: '右上角',
+    bottomLeft: '左下角',
+    bottomRight: '右下角',
+    center: '中心',
+    fontSize: '字体大小',
+    watermarkColor: '水印颜色',
+    watermarkOpacity: '透明度'
   },
   upload: {
     imageOnly: '只能上传图片文件！',
     sizeLimitError: '图片必须小于100MB！',
     formatNotAllowed: '不支持上传 ICNS、ICO 和 HEIC 格式文件！',
     dragText: '拖拽文件到这里或者点击上传'
+  },
+  imageEditor: {
+    crop: '裁剪',
+    flip: '翻转',
+    rotate: '旋转',
+    draw: '绘制',
+    shape: '形状',
+    icon: '图标',
+    text: '文本',
+    mask: '遮罩',
+    filter: '滤镜',
+    download: '下载',
+    reset: '重置',
+    undo: '撤销',
+    redo: '重做',
+    zoomIn: '放大',
+    zoomOut: '缩小'
   }
 } 

@@ -117,6 +117,14 @@ const options = ref<{
   keepExif: boolean;
   originSize: boolean;
   outputformat: string;
+  watermark: {
+    enabled: boolean;
+    text: string;
+    position: string;
+    fontSize: number;
+    color: string;
+    opacity: number;
+  }
 }>({
   width: 0,
   height: 0,
@@ -124,6 +132,14 @@ const options = ref<{
   originSize: true,
   quality: 80,
   outputformat: "webp",
+  watermark: {
+    enabled: false,
+    text: "",
+    position: "bottom-right",
+    fontSize: 24,
+    color: "#ffffff",
+    opacity: 0.7
+  }
 });
 
 const supportedFormat = [
@@ -254,7 +270,7 @@ const processSingleIMG = async (item: PROCESED_ITEM) => {
   try {
     const optionsCloned = JSON.parse(JSON.stringify(options.value));
     window.ipcRenderer
-      .invoke("pi", {
+      .invoke("compress", {
         imgs: fileBuffers,
         options: optionsCloned,
       })
@@ -277,10 +293,12 @@ const processSingleIMG = async (item: PROCESED_ITEM) => {
       .catch((e) => {
         loading.value = false;
         message.error(e.message);
+        console.error(e);
       });
   } catch (e: any) {
     loading.value = false;
     message.error(e.message);
+    console.error(e);
   }
 };
 
@@ -322,7 +340,7 @@ const processIMG = async () => {
   try {
     const optionsCloned = JSON.parse(JSON.stringify(options.value));
     window.ipcRenderer
-      .invoke("pi", {
+      .invoke("compress", {
         imgs: fileBuffers,
         options: optionsCloned,
       })
@@ -552,6 +570,67 @@ const processIMG = async () => {
             {{ t(`options.notice.${options.outputformat}`) }}
           </div>
         </div>
+        
+        <!-- 添加水印设置 -->
+        <div class="w-full flex mb-2 justify-between">
+          <label class="mr-2 zinc-label mb-2 flex-1 dark:text-zinc-300">{{ t('options.watermark') }}</label>
+          <div class="pl-2">
+            <a-switch v-model:checked="options.watermark.enabled" />
+          </div>
+        </div>
+        
+        <!-- 水印设置选项 (当启用水印时显示) -->
+        <div v-if="options.watermark.enabled" class="w-full flex flex-col mb-2">
+          <!-- 水印文本 -->
+          <div class="w-full flex mb-2 justify-between">
+            <label class="mr-2 zinc-label mb-2 flex-1 dark:text-zinc-300">{{ t('options.watermarkText') }}</label>
+            <div class="pl-2">
+              <div class="w-40">
+                <a-input v-model:value="options.watermark.text" :placeholder="t('options.watermarkTextPlaceholder')" />
+              </div>
+            </div>
+          </div>
+          
+          <!-- 水印位置 -->
+          <div class="w-full flex mb-2 justify-between">
+            <label class="mr-2 zinc-label mb-2 flex-1 dark:text-zinc-300">{{ t('options.watermarkPosition') }}</label>
+            <div class="pl-2">
+              <a-select v-model:value="options.watermark.position" class="w-40">
+                <a-select-option value="top-left">{{ t('options.topLeft') }}</a-select-option>
+                <a-select-option value="top-right">{{ t('options.topRight') }}</a-select-option>
+                <a-select-option value="bottom-left">{{ t('options.bottomLeft') }}</a-select-option>
+                <a-select-option value="bottom-right">{{ t('options.bottomRight') }}</a-select-option>
+                <a-select-option value="center">{{ t('options.center') }}</a-select-option>
+              </a-select>
+            </div>
+          </div>
+          
+          <!-- 字体大小 -->
+          <div class="w-full flex mb-2 justify-between">
+            <label class="mr-2 zinc-label mb-2 flex-1 dark:text-zinc-300">{{ t('options.fontSize') }}</label>
+            <div class="pl-2">
+              <div class="w-40 flex">
+                  <a-input-number v-model:value="options.watermark.fontSize"  :min="8" :max="100" class="flex-1"/>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 水印颜色 -->
+          <div class="w-full flex mb-2 justify-between">
+            <label class="mr-2 zinc-label mb-2 flex-1 dark:text-zinc-300">{{ t('options.watermarkColor') }}</label>
+            <div class="pl-2">
+              <a-input v-model:value="options.watermark.color" type="color" class="w-40" />
+            </div>
+          </div>
+          
+          <!-- 水印透明度 -->
+          <div class="w-full flex mb-2 justify-between">
+            <label class="mr-2 zinc-label mb-2 flex-1 dark:text-zinc-300">{{ t('options.watermarkOpacity') }}</label>
+            <div class="pl-2">
+              <a-slider v-model:value="options.watermark.opacity" :min="0" :max="1" :step="0.1" class="w-40" />
+            </div>
+          </div>
+        </div>
       </div>
       
       <!-- 操作按钮 -->
@@ -562,7 +641,7 @@ const processIMG = async () => {
             @click="processIMG" 
             :loading="loading"
             :disabled="list.length === 0"
-            class="w-26 flex items-center">
+            class="w-30 flex items-center">
               <play-one :size="16" v-if="!loading"/>
               <span v-show="!loading">
                 {{ t('imgProcess.batchProcess') }}
@@ -571,7 +650,7 @@ const processIMG = async () => {
           <a-button 
             @click="exportAll" 
             :disabled="previewList.filter(i => i.status === 1).length === 0"
-            class="w-26 flex items-center">
+            class="w-30 flex items-center">
             <export :size="16" class="mr-1" />
             {{ t('imgProcess.exportAll') }}
           </a-button>

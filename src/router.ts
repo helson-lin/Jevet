@@ -1,5 +1,4 @@
 import {  createWebHashHistory, createRouter } from 'vue-router'
-import Home from './pages/Home.vue'
 import ImgProcess from './pages/ImgProcess.vue'
 import ImgRemoveBg from './pages/ImgRemoveBg.vue'
 import Preview from './pages/Preview.vue'

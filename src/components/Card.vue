@@ -1,57 +1,42 @@
-<script lang="ts">
-import { defineComponent, ref } from "vue";
+<script setup lang="ts">
+import { ref, computed } from "vue";
 import { Pic, CuttingOne, Zoom, SmartOptimization } from "@icon-park/vue-next";
 import { useRouter } from "vue-router";
-export default defineComponent({
-    components: {
-        Pic,
-        CuttingOne,
-        Zoom,
-        SmartOptimization
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
+const router = useRouter();
+
+const list = computed(() => [
+    {
+        name: t("home.imageCompression"),
+        icon: "pic",
+        desc: t("home.imageCompressionDesc"),
+        path: '/img',
     },
-    setup () {
-        const list = ref<{
-                name: string;
-                icon: string;
-                desc: string;
-                path: string;
-        }[]>([
-            {
-                name: "图片转码压缩",
-                icon: "pic",
-                desc: "支持多种格式转换，包括PNG、JPG、WEBP等",
-                path: '/img',
-            },
-            {
-                name: "智能抠图",
-                icon: "cutting-one",
-                desc: "一键抠除背景，支持人物、物品等多种场景",
-                path: '/removeBg'
-            },
-            {
-                name: "AI 扩图",
-                icon: "zoom",
-                desc: "一键抠除背景，支持人物、物品等多种场景",
-                path: ''
-            },
-            {
-                name: "智能修图",
-                icon: "smart-optimization",
-                desc: "一键抠除背景，支持人物、物品等多种场景",
-                path: ''
-            },
-        ]);
-        const router = useRouter()
-        const jump = (routerPATH: string) => {
-            if (!routerPATH) return;
-            router.push({ path: routerPATH, query: {} })
-        }
-        return {
-            list,
-            jump
-        }
-    }
-})
+    {
+        name: t("home.smartCutout"),
+        icon: "cutting-one",
+        desc: t("home.smartCutoutDesc"),
+        path: '/removeBg'
+    },
+    {
+        name: t("home.aiExpand"),
+        icon: "zoom",
+        desc: t("home.aiExpandDesc"),
+        path: ''
+    },
+    {
+        name: t("home.smartRetouch"),
+        icon: "smart-optimization",
+        desc: t("home.smartRetouchDesc"),
+        path: ''
+    },
+]);
+const jump = (routerPATH: string) => {
+    if (!routerPATH) return;
+    router.push({ path: routerPATH, query: {} })
+}
 </script>
 <template>
 <div class="flex flex-wrap w-full py-2">

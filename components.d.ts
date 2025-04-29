@@ -23,6 +23,7 @@ declare module 'vue' {
     AUploadDragger: typeof import('ant-design-vue/es')['UploadDragger']
     Card: typeof import('./src/components/Card.vue')['default']
     Icon: typeof import('./src/components/Icon.vue')['default']
+    ImageHandler: typeof import('./src/components/ImageHandler.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Upload: typeof import('./src/components/Upload.vue')['default']

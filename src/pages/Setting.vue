@@ -138,6 +138,8 @@ const updateLanguage = (language: "zh" | "en") => {
   updateSettings({ language }, () => {
     i18nLocale.value = language;
     store.updatePaths({ language });
+    // 同时更新 localStorage
+    localStorage.setItem('language', language);
     message.success(t("settings.updateSuccess"));
   });
 };

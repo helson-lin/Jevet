@@ -2,7 +2,19 @@ export default {
   app: {
     title: 'Jevet',
     settings: 'Settings',
-    github: 'View on GitHub'
+    github: 'View on GitHub',
+    iconGenerator: 'Icon Generator',
+    iconGeneratorDesc: 'Edit and generate your app icons'
+  },
+  home: {
+    imageCompression: 'Image Compression',
+    imageCompressionDesc: 'Support multiple format conversion, including PNG, JPG, WEBP, etc.',
+    smartCutout: 'Smart Cutout',
+    smartCutoutDesc: 'One-click background removal, supporting various scenarios like people and objects',
+    aiExpand: 'AI Expand',
+    aiExpandDesc: 'Intelligently expand image dimensions while maintaining visual integrity',
+    smartRetouch: 'Smart Retouch',
+    smartRetouchDesc: 'AI-powered image retouching for automatic quality optimization'
   },
   settings: {
     paths: 'Base Settings',
@@ -19,7 +31,11 @@ export default {
     downloadSuccess: 'Model downloaded successfully',
     downloadFailed: 'Failed to download model',
     pathUpdateSuccess: 'Path updated successfully',
-    pathUpdateFailed: 'Failed to update path'
+    updateSuccess: 'Update successfully',
+    pathUpdateFailed: 'Failed to update path',
+    refreshError: 'Failed to refresh',
+    license: "License",
+    homepage: "Homepage"
   },
   imgProcess: {
     upload: 'Upload Images',
@@ -27,7 +43,7 @@ export default {
     clearAll: 'Clear All',
     processed: 'Processed',
     exportAll: 'Export All',
-    batchProcess: 'Batch Process',
+    batchProcess: 'Process All',
     noImages: 'No images to process, please upload some images',
     deleteConfirm: 'Are you sure to delete all images?',
     delete: 'Delete',
@@ -50,7 +66,7 @@ export default {
     model: 'Model',
     compression: 'Compression',
     outputFormat: 'Output Format',
-    batchProcess: 'Batch Process',
+    batchProcess: 'Process All',
     exportAll: 'Export All',
     processed: 'Processed',
     notice: {
@@ -72,12 +88,41 @@ export default {
     notice: {
       icns: 'ICNS format cannot adjust size and compression ratio, other parameters are invalid',
       ico: 'ICO is the Windows program icon format'
-    }
+    },
+    watermark: 'Watermark',
+    watermarkText: 'Watermark Text',
+    watermarkTextPlaceholder: 'Enter watermark text',
+    watermarkPosition: 'Position',
+    topLeft: 'Top Left',
+    topRight: 'Top Right',
+    bottomLeft: 'Bottom Left',
+    bottomRight: 'Bottom Right',
+    center: 'Center',
+    fontSize: 'Font Size',
+    watermarkColor: 'Color',
+    watermarkOpacity: 'Opacity'
   },
   upload: {
     imageOnly: 'You can only upload image files!',
     sizeLimitError: 'Image must be smaller than 100MB!',
     formatNotAllowed: 'ICNS, ICO, and HEIC files are not allowed!',
     dragText: 'Click or drag files to upload'
+  },
+  imageEditor: {
+    crop: 'Crop',
+    flip: 'Flip',
+    rotate: 'Rotate',
+    draw: 'Draw',
+    shape: 'Shape',
+    icon: 'Icon',
+    text: 'Text',
+    mask: 'Mask',
+    filter: 'Filter',
+    download: 'Download',
+    reset: 'Reset',
+    undo: 'Undo',
+    redo: 'Redo',
+    zoomIn: 'Zoom In',
+    zoomOut: 'Zoom Out'
   }
 } 

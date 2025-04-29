@@ -531,7 +531,7 @@ const handleChange = (value: string) => {
             @click="processIMG" 
             :loading="loading"
             :disabled="list.length === 0"
-            class="w-26 flex items-center">
+            class="w-30 flex items-center">
               <play-one :size="16" v-if="!loading"/>
               <span v-show="!loading">
                 {{ t('removeBg.batchProcess') }}
@@ -540,7 +540,7 @@ const handleChange = (value: string) => {
           <a-button 
             @click="exportAll" 
             :disabled="previewList.filter(i => i.status === 1).length === 0"
-            class="w-26 flex items-center">
+            class="w-30 flex items-center">
             <export :size="16" class="mr-1" />
             {{ t('removeBg.exportAll') }}
           </a-button>
