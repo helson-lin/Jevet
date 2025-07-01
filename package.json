@@ -33,7 +33,7 @@
     "@electron/fuses": "^1.8.0",
     "@vitejs/plugin-vue": "^5.0.4",
     "del-cli": "^6.0.0",
-    "electron": "^35.1.5",
+    "electron": "^37.1.0",
     "electron-builder": "^26.0.12",
     "electron-rebuild": "^3.2.9",
     "typescript": "^5.4.2",
