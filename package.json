@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "@electron/fuses": "^1.8.0",
-    "@vitejs/plugin-vue": "^5.0.4",
+    "@vitejs/plugin-vue": "^6.0.0",
     "del-cli": "^6.0.0",
     "electron": "^35.1.5",
     "electron-builder": "^26.0.12",
