@@ -177,6 +177,7 @@ function getModelOption (modelName): ModelOptionItem {
           height: 320,
           size: 'unkown',
           license: 'unkown',
+          md5: 'unkown',
           homepage: 'unkown',
           feedInput: 'input.1'
       }
@@ -200,7 +201,7 @@ async function removeBg(
       `removebg-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${inputOptions.outputformat}`
     );
     // 1. 加载 ONNX 模型
-    const config = getConfig();
+    const config = await getConfig();
     const modelDir = config.data.modelDir;
     const modelDirPath = modelDir || path.join(process.cwd(), 'model');
     const modelPath = path.join(modelDirPath, `${inputOptions.model || 'u2net'}.onnx`);

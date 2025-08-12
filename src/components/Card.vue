@@ -11,10 +11,10 @@ export default defineComponent({
     },
     setup () {
         const list = ref<{
-                name: String;
-                icon: String;
-                desc: String;
-                path: String;
+                name: string;
+                icon: string;
+                desc: string;
+                path: string;
         }[]>([
             {
                 name: "图片转码压缩",
@@ -60,7 +60,7 @@ export default defineComponent({
         v-for="(item, index) in list"
         :key="index"
     >
-    <div class="inner flex flex-col w-full shadow rounded-md py-2 pt-4" :class="{'bg-gray-100': !item.path, 'bg-white  hover:shadow-gray-400': item.path }" @click="jump(item.path)">
+    <div class="inner flex flex-col w-full shadow rounded-md py-2 pt-4" :class="{'bg-gray-200': !item.path, 'bg-white  hover:shadow-gray-400': item.path }" @click="jump(item.path)">
         <div class="flex items-center justify-center mb-2">
             <component :name="item.icon" :is="item.icon" size="40" :fill="['#05A17E' ,'#ffffff']" strokeLinejoin="bevel" strokeLinecap="square"></component>
         </div>

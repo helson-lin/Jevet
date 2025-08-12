@@ -13,6 +13,8 @@ export default {
     selectOutputPath: 'Select output file location',
     browse: 'Browse',
     modelManagement: 'Model Management',
+    refresh: 'Refresh',
+    refreshSuccess: 'Refreshed successfully',
     download: 'Download',
     downloadSuccess: 'Model downloaded successfully',
     downloadFailed: 'Failed to download model',
@@ -22,6 +24,7 @@ export default {
   imgProcess: {
     upload: 'Upload Images',
     deleteAll: 'Delete All',
+    clearAll: 'Clear All',
     processed: 'Processed',
     exportAll: 'Export All',
     batchProcess: 'Batch Process',
@@ -56,10 +59,13 @@ export default {
     }
   },
   options: {
+    title: 'Processing Options',
     originalSize: 'Original Size',
+    originalSizeDesc: 'Keep the original dimensions of the image',
     dimensions: 'Dimensions',
     keepExif: 'Keep EXIF',
-    compression: 'Compression',
+    keepExifDesc: 'Preserve metadata information in the image',
+    compression: 'Compression Quality',
     outputFormat: 'Output Format',
     width: 'Width',
     height: 'Height',
@@ -71,7 +77,7 @@ export default {
   upload: {
     imageOnly: 'You can only upload image files!',
     sizeLimitError: 'Image must be smaller than 100MB!',
-    formatNotAllowed: 'ICNS and ICO files are not allowed!',
+    formatNotAllowed: 'ICNS, ICO, and HEIC files are not allowed!',
     dragText: 'Click or drag files to upload'
   }
 } 

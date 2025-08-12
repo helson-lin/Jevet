@@ -1,12 +1,14 @@
 import { app } from "electron";
 import path from 'node:path';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 export interface ModelOptionItem {
     width: number;
     height: number;
     size: string;
     license: string;
     homepage: string;
+    md5: string;
     feedInput: string;
     downloaded?: boolean;
 }
@@ -31,6 +33,7 @@ export const MODEL_OPTION: ModelOption = {
         size: '176MB',
         license: 'bria-rmbg-1.4',
         homepage: 'https://github.com/danielgatis/rembg',
+        md5: '8bb9b16ff49cda31e7784852873cfd0d', 
         feedInput: 'input'
     },
     'u2net.onnx': {
@@ -39,6 +42,7 @@ export const MODEL_OPTION: ModelOption = {
         size: '176MB',
         license: 'MIT',
         homepage: 'https://github.com/danielgatis/rembg',
+        md5: '60024c5c889badc19c04ad937298a77b',
         feedInput: 'input.1'
     },
     'u2net_human_seg.onnx': {
@@ -47,6 +51,7 @@ export const MODEL_OPTION: ModelOption = {
         size: '176MB',
         license: 'MIT',
         homepage: 'https://github.com/danielgatis/rembg',
+        md5: 'c09ddc2e0104f800e3e1bb4652583d1f',
         feedInput: 'input.1'
     },
     'u2net_cloth_seg.onnx': {
@@ -55,6 +60,7 @@ export const MODEL_OPTION: ModelOption = {
         size: '176MB',
         license: 'MIT',
         homepage: 'https://github.com/danielgatis/rembg',
+        md5: '2434d1f3cb744e0e49386c906e5a08bb',
         feedInput: 'input.1'
     },
     'silueta.onnx': {
@@ -63,6 +69,7 @@ export const MODEL_OPTION: ModelOption = {
         size: '44.2MB',
         license: 'MIT',
         homepage: 'https://github.com/danielgatis/rembg',
+        md5: '55e59e0d8062d2f5d013f4725ee84782',
         feedInput: 'input.1'
     },
     'BEN2_Base.onnx': {
@@ -71,6 +78,7 @@ export const MODEL_OPTION: ModelOption = {
         size: '222.9MB',
         license: 'MIT',
         homepage: 'https://github.com/PramaLLC/BEN2/',
+        md5: 'a12dafe4080f53e8818726b298bd90bc',
         feedInput: 'input.1'
     },
     'isnet-general-use.onnx': {
@@ -79,6 +87,7 @@ export const MODEL_OPTION: ModelOption = {
         size: '178.6MB',
         license: 'MIT',
         homepage: 'https://github.com/danielgatis/rembg',
+        md5: '80bb0d6616a2085b2f264913e01fafa2',
         feedInput: 'input_image'
     }
 }
@@ -114,24 +123,56 @@ export function setupConfig() {
     return configPath;
 }
 
-export function getConfig (): {
+export async function getConfig(): Promise<{
     success: boolean;
     data: AppOptions | null;
     error: null | Error;
     path: string;
-} {
+}> {
     const configPath = setupConfig();
     try {
         const config = fs.readFileSync(configPath, 'utf-8');
         const options: AppOptions = JSON.parse(config)
         // 检查模型是否已经下载到 options.modelDir
         if (options.models) {
-            // 检查模型是否已经下载到 options.modelDir
-            for (const model in options.models) {
-                const exists = fs.existsSync(path.join(options.modelDir, model));
-                console.log(`模型[${model}]${exists ? '已下载' : '未下载'}: ${path.join(options.modelDir, model)}`);
-                options.models[model].downloaded = exists;
-            }
+            const modelNames = Object.keys(options.models);
+            // 并发校验各模型文件
+            await Promise.all(modelNames.map(async (model) => {
+                const modelFilePath = path.join(options.modelDir, model);
+                const exists = fs.existsSync(modelFilePath);
+                console.log(`模型[${model}]${exists ? '已下载' : '未下载'}: ${modelFilePath}`);
+                if (!exists) {
+                    options.models[model].downloaded = false;
+                    return;
+                }
+                const expectedMd5 = options.models[model].md5;
+                const sidecarPath = `${modelFilePath}.md5`;
+
+                // 优先使用侧车 md5 文件以加速启动
+                if (fs.existsSync(sidecarPath)) {
+                    try {
+                        const sidecarMd5 = fs.readFileSync(sidecarPath, 'utf-8').trim();
+                        if (sidecarMd5 === expectedMd5) {
+                            options.models[model].downloaded = true;
+                            console.log(`模型[${model}]md5一致(侧车): ${modelFilePath}`);
+                            return;
+                        }
+                    } catch (_) {
+                        // 侧车读取失败则回退到流式计算
+                    }
+                }
+
+                // 流式计算 md5，避免一次性读取大文件
+                const actualMd5 = await md5OfFile(modelFilePath);
+                const isMatch = actualMd5 === expectedMd5;
+                options.models[model].downloaded = isMatch;
+                // 更新侧车 md5 文件，方便下次快速校验
+                try {
+                    fs.writeFileSync(sidecarPath, actualMd5, 'utf-8');
+                } catch (_) { /* 忽略写入错误 */ }
+                console.log(actualMd5, expectedMd5);
+                console.log(`模型[${model}]md5${isMatch ? '一致' : '不2一致'}: ${modelFilePath}`);
+            }));
         }
         return {
             success: true,
@@ -141,7 +182,7 @@ export function getConfig (): {
         }
     } catch (e) {
         return {
-            error: e,
+            error: e as Error,
             data: null,
             path: configPath,
             success: false,
@@ -149,14 +190,28 @@ export function getConfig (): {
     }
 }
 
+function md5OfFile(filePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        try {
+            const hash = crypto.createHash('md5');
+            const stream = fs.createReadStream(filePath);
+            stream.on('data', (chunk) => hash.update(chunk));
+            stream.on('error', (err) => reject(err));
+            stream.on('end', () => resolve(hash.digest('hex')));
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
 // 更新配置
-export function updateConfig (options: Partial<AppOptions>):  {
+export async function updateConfig (options: Partial<AppOptions>):  Promise<{
     success: boolean;
     data: AppOptions | null;
     error: null | Error;
-} {
+}> {
     try {
-        const res = getConfig()
+        const res = await getConfig()
         if (!res.success) {
             return {
                 success: false,
@@ -192,6 +247,7 @@ export function getModelOption(modelName: string): ModelOptionItem {
             height: 320,
             size: 'unkown',
             license: 'unkown',
+            md5: 'unkown',
             homepage: '',
             feedInput: 'input.1'
         }; // 默认返回 u2net 的配置

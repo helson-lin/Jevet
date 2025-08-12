@@ -13,6 +13,8 @@ export default {
     selectOutputPath: '选择文件输出位置',
     browse: '浏览',
     modelManagement: '模型管理',
+    refresh: '刷新',
+    refreshSuccess: '刷新成功',
     download: '下载',
     downloadSuccess: '模型下载成功',
     downloadFailed: '模型下载失败',
@@ -25,6 +27,7 @@ export default {
   imgProcess: {
     upload: '所有图片',
     deleteAll: '删除全部',
+    clearAll: '清空全部',
     processed: '已处理',
     exportAll: '全部导出',
     batchProcess: '批量处理',
@@ -59,9 +62,12 @@ export default {
     }
   },
   options: {
+    title: '处理选项',
     originalSize: '原始尺寸',
+    originalSizeDesc: '保持图片的原始尺寸',
     dimensions: '宽高',
     keepExif: 'EXIF保留',
+    keepExifDesc: '保留图片中的元数据信息',
     compression: '压缩质量',
     outputFormat: '输出格式',
     width: '宽度',
@@ -74,7 +80,7 @@ export default {
   upload: {
     imageOnly: '只能上传图片文件！',
     sizeLimitError: '图片必须小于100MB！',
-    formatNotAllowed: '不支持上传 ICNS 和 ICO 格式文件！',
+    formatNotAllowed: '不支持上传 ICNS、ICO 和 HEIC 格式文件！',
     dragText: '拖拽文件到这里或者点击上传'
   }
 } 

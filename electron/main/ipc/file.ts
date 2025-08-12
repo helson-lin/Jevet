@@ -59,10 +59,10 @@ export function setupFileHandlers() {
   ipcMain.handle('updateConfig', async (_, options: Partial<AppOptions>) => updateConfig(options))
   // 下载模型
   ipcMain.handle('dowloadModel', async (event, { url, fileName, modelId }) => {
-
+    console.log('开始下载', fileName);
     try {
       // 获取配置信息
-      const configResult = getConfig();
+      const configResult = await getConfig();
       if (!configResult.success || !configResult.data) {
         throw new Error('无法获取配置信息');
       }
@@ -91,7 +91,6 @@ export function setupFileHandlers() {
       return new Promise((resolve, reject) => {
         let receivedBytes = 0;
         let totalBytes = 0;
-        
         const req = https.get(url, (response) => {
           // 检查响应状态码
           if (response.statusCode !== 200) {
@@ -119,6 +118,7 @@ export function setupFileHandlers() {
           response.pipe(file);
           
           file.on('finish', () => {
+            console.log('下载完成', fileName);
             file.close();
             
             // 更新配置中的模型状态
@@ -165,6 +165,39 @@ export function setupFileHandlers() {
       return {
         success: false,
         message: error.message || '下载失败'
+      };
+    }
+  })
+  // 删除未完成的模型文件deleteIncompleteModel
+  ipcMain.handle('deleteIncompleteModel', async (_, modelId) => {
+    try {
+      const configResult = await getConfig();
+      if (!configResult.success || !configResult.data) {
+        throw new Error('无法获取配置信息');
+      }
+      const config = configResult.data;
+      const modelDir = config.modelDir;
+      if (!modelDir) {
+        throw new Error('模型目录未配置');
+      }
+      const filePath = path.join(modelDir, modelId);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        return {
+          success: true,
+          message: '删除完成'
+        };
+      } else {
+        return {
+          success: false,
+          message: '文件不存在'
+        };
+      }
+    } catch (error) {
+      console.error('删除失败:', error);
+      return {
+        success: false,
+        message: error.message || '删除失败'
       };
     }
   })

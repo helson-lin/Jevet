@@ -1,6 +1,22 @@
-import { AppOptions, updateConfig } from 'electron/main/ipc/config'
 import { defineStore } from 'pinia'
 import { message } from 'ant-design-vue'
+
+interface AppOptions {
+    modelDir: string
+    outputDir: string
+    language: string
+    theme: string
+    models: Record<string, {
+        width: number
+        height: number
+        size: string
+        license: string
+        homepage: string
+        downloaded: boolean
+        feedInput: string
+        md5: string
+    }>
+}
 
 interface AppConfig {
     theme: 'auto' | 'light' | 'dark'

@@ -14,7 +14,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:list'])
-const notAllow = ['icns', 'ico']
+const notAllow = ['icns', 'ico', 'heic']
 const fileList = computed({
   set (value: UploadFile[]) {
     emit('update:list', value.filter(i => !notAllow.some(j => i.name.toLowerCase().endsWith(j))))
@@ -27,9 +27,9 @@ const loading = ref<boolean>(false);
 
 const beforeUpload = (file: any) => {
   const isJpgOrPng = file.type.startsWith('image')
-  const isIcnsOrIco = file.name.toLowerCase().endsWith('.icns') || file.name.toLowerCase().endsWith('.ico')
+  const isRestrictedFormat = notAllow.some(format => file.name.toLowerCase().endsWith(`.${format}`))
   
-  if (isIcnsOrIco) {
+  if (isRestrictedFormat) {
     message.error(t('upload.formatNotAllowed'));
     return false;
   }
@@ -60,6 +60,8 @@ const beforeUpload = (file: any) => {
         <loading-outlined v-if="loading"></loading-outlined>
         <Icon name="upload" size="40" />
         <div class="ant-upload-text mt-4">{{ t('upload.dragText') }}</div>
+        <div class="ant-upload-text mt-4 text-gray-500 text-xs">{{ t('upload.formatNotAllowed') }}</div>
+        <div class="ant-upload-text mt-4 text-gray-500 text-xs">{{ t('upload.sizeLimitError') }}</div>
       </div>
     </a-upload-dragger>
   </div>

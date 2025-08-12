@@ -26,7 +26,7 @@ async function createWindow() {
   win = new BrowserWindow({
     title: "Main window",
     width: 900,
-    height: 500,
+    height: 650,
     icon: path.join(PUBLIC_DIR, "favicon.ico"),
     webPreferences: {
       preload,
