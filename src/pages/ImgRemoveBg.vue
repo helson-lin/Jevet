@@ -1,20 +1,4 @@
 <script setup lang="ts">
-import { ref, computed, h } from "vue";
-import Upload from "../components/Upload.vue";
-import { message, Modal, type UploadFile, type SelectProps } from "ant-design-vue";
-import { useI18n } from 'vue-i18n';
-import {
-  Export,
-  PreviewOpen,
-  PlayOne,
-  CheckSmall,
-  ArrowRight,
-  Info,
-  DeleteOne,
-} from "@icon-park/vue-next";
-
-const { t } = useI18n();
-
 interface SHARP_RESULT {
   outputPath: string;
   base64Image: string;
@@ -38,6 +22,23 @@ interface PROCESED_ITEM {
   base64Image: string;
 }
 
+import { ref, computed, h, watchEffect } from "vue";
+import { useStore } from '../store/index';
+import Upload from "../components/Upload.vue";
+import { message, Modal, type UploadFile, type SelectProps } from "ant-design-vue";
+import { useI18n } from 'vue-i18n';
+import {
+  Export,
+  PreviewOpen,
+  DeleteOne,
+  PlayOne,
+  CheckSmall,
+  ArrowRight,
+  Info,
+} from "@icon-park/vue-next";
+
+const { t } = useI18n();
+const store = useStore();
 const list = ref<UploadFile[]>([]);
 const loading = ref(false);
 const processImgs = ref<SHARP_RESULT[]>([]);
@@ -66,7 +67,7 @@ const previewList = computed(() => {
   return list.value.reduce<PROCESED_ITEM[]>((pre, val) => {
     // 是否已经处理过
     const isInResult = processImgs.value.find(
-      (result) => result.uid === val.uid
+      (result) => result?.uid === val?.uid
     );
     if (!isInResult) {
       pre.push({
@@ -110,69 +111,49 @@ const previewList = computed(() => {
   }, []);
 });
 
-const options = ref<{
-  width: number;
-  height: number;
-  quality: number;
-  keepExif: boolean;
-  originSize: boolean;
-  outputformat: string;
-  watermark: {
-    enabled: boolean;
-    text: string;
-    position: string;
-    fontSize: number;
-    color: string;
-    opacity: number;
-  }
-}>({
-  width: 0,
-  height: 0,
-  keepExif: false,
-  originSize: true,
-  quality: 80,
-  outputformat: "webp",
-  watermark: {
-    enabled: false,
-    text: "",
-    position: "bottom-right",
-    fontSize: 24,
-    color: "#ffffff",
-    opacity: 0.7
-  }
+// const supportedModels = [
+//   'u2net',
+//   'silueta',
+//   'u2net_human_seg',
+//   'u2net_cloth_seg',
+//   'rmbg-1.4'
+// ];
+
+const supportedModels = computed(() => {
+  const models = store.settings.models || {};
+  return Object.keys(models)
+    .filter(key => models[key].downloaded)
+    .map(key => key.replace('.onnx', ''));
 });
+
+const options = ref<{
+  model: string;
+  quality: number;
+  outputformat: string;
+}>({
+  model: 'u2net',
+  quality: 80,
+  outputformat: "png",
+});
+
+watchEffect(() => {
+  if (supportedModels.value.length > 0) {
+    options.value.model = supportedModels.value[0];
+  }
+})
 
 const supportedFormat = [
   "png",
   "jpg",
   "jpeg",
-  "webp",
-  "gif",
-  "tiff",
-  "icns",
-  "ico",
+  "webp"
 ];
 
-const qualityDisabled = ["gif", "icns", "ico"];
-const resizeDisabled = ["icns", "ico"];
-
-const noticeMap: {
-  [key: string]: string;
-} = {
-  icns: "icns 格式无法调整尺寸和压缩率,其他参数无效",
-  ico: "ico为 windows 程序图标格式"
-};
-
-const disabledResize = computed(() =>
-  resizeDisabled.includes(options.value.outputformat)
-);
-
-const showQuality = computed(
-  () => !qualityDisabled.includes(options.value.outputformat)
-);
+const showQuality = computed(() => true);
 
 // 删除图片
-const deleteImg = (imgIndex: number) => {
+const deleteImg = (item: PROCESED_ITEM) => {
+  const imgIndex = list.value.findIndex((listItem) => listItem.uid === item.uid);
   if (imgIndex !== -1) {
     list.value.splice(imgIndex, 1);
     message.success(t('imgProcess.deleteImgSuccess'));
@@ -212,22 +193,7 @@ const deleteImgALl = () => {
   });
 };
 
-const originSizeChange = (value: boolean) => {
-  if (value) {
-    options.value.width = 0;
-    options.value.height = 0;
-  }
-};
-
-const handleChange: SelectProps["onChange"] = (value) => {
-  if (qualityDisabled.includes(value as unknown as string)) {
-    options.value.quality = 100;
-  }
-};
-
 const previewImg = (item: PROCESED_ITEM) => {
-  const allResouces = previewList.value.map((item) => item.outputPath).join(",");
-  // localStorage.setItem("allResouces", allResouces, );
   window.ipcRenderer.invoke("open-win", `preview?url=${item.preview}&output=${item.outputPath}`);
 };
 
@@ -264,13 +230,12 @@ function formatFileSize(bytes?: number) {
 
 const processSingleIMG = async (item: PROCESED_ITEM) => {
   const fileBuffers = [];
-  // singFile.uid;
   const bufferData = await item.file.arrayBuffer();
   fileBuffers.push({ buffer: bufferData, uid: item.uid });
   try {
     const optionsCloned = JSON.parse(JSON.stringify(options.value));
     window.ipcRenderer
-      .invoke("compress", {
+      .invoke("pi", {
         imgs: fileBuffers,
         options: optionsCloned,
       })
@@ -283,7 +248,6 @@ const processSingleIMG = async (item: PROCESED_ITEM) => {
           console.log("✅", data);
           loading.value = false;
           if (data.success && data.results) {
-            // 不可以直接替换
             processImgs.value = data.results;
           } else {
             if (data.error) message.warning(data.error);
@@ -293,12 +257,10 @@ const processSingleIMG = async (item: PROCESED_ITEM) => {
       .catch((e) => {
         loading.value = false;
         message.error(e.message);
-        console.error(e);
       });
   } catch (e: any) {
     loading.value = false;
     message.error(e.message);
-    console.error(e);
   }
 };
 
@@ -332,7 +294,6 @@ const processIMG = async () => {
   }
   const fileBuffers = [];
   for (const singFile of files) {
-    // singFile.uid;
     const bufferData = await (singFile.originFileObj as File).arrayBuffer();
     fileBuffers.push({ buffer: bufferData, uid: singFile.uid });
   }
@@ -340,7 +301,7 @@ const processIMG = async () => {
   try {
     const optionsCloned = JSON.parse(JSON.stringify(options.value));
     window.ipcRenderer
-      .invoke("compress", {
+      .invoke("remove", {
         imgs: fileBuffers,
         options: optionsCloned,
       })
@@ -367,6 +328,10 @@ const processIMG = async () => {
     loading.value = false;
     message.error(e.message);
   }
+};
+
+const handleChange = (value: string) => {
+  // No special handling needed for background removal
 };
 </script>
 
@@ -432,7 +397,7 @@ const processIMG = async () => {
                     </div>
                   </div>
                   <a-tag v-if="ii.status === 1" color="success" size="small">
-                    {{ t('imgProcess.processed') }}
+                    {{ t('removeBg.processed') }}
                   </a-tag>
                 </div>
               </div>
@@ -454,7 +419,7 @@ const processIMG = async () => {
                           <export :size="14" />
                         </a-button>
                       </div>
-                      <a-button danger ghost size="small" @click="deleteImg(index)" class="flex items-center justify-center">
+                      <a-button danger ghost size="small" @click="deleteImg(ii)" class="flex items-center justify-center">
                         <delete-one :size="14" />
                       </a-button>
                     </div>
@@ -492,44 +457,30 @@ const processIMG = async () => {
       <!-- 设置标题 -->
       <div class="p-4 border-b border-zinc-200 dark:border-zinc-700">
         <h3 class="text-lg font-semibold text-zinc-800 dark:text-zinc-200">
-          {{ t('options.title') }}
+          {{ t('removeBg.title') }}
         </h3>
       </div>
       
       <!-- 选项区域 -->
-      <div class="flex-1 p-4 space-y-6 overflow-y-auto">
-        <!-- 原始尺寸 -->
+      <div class="flex-1 p-4 space-y-6">
+        <!-- 模型选择 -->
         <div class="space-y-2">
           <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            {{ t('options.originalSize') }}
+            {{ t('removeBg.model') }}
           </label>
-          <a-switch v-model:checked="options.originSize" :disabled="disabledResize" @change="originSizeChange" />
-        </div>
-        
-        <!-- 宽高设置 -->
-        <div class="space-y-2">
-          <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            {{ t('options.dimensions') }}
-          </label>
-          <div class="flex items-center gap-2">
-            <a-input-number v-model:value="options.width" :min="1" :disabled="options.originSize" class="w-full" :placeholder="t('options.width')" />
-            <span class="mx-1 dark:text-zinc-300">X</span>
-            <a-input-number v-model:value="options.height" :min="1" :disabled="options.originSize" class="w-full" :placeholder="t('options.height')" />
-          </div>
-        </div>
-        
-        <!-- EXIF 保留 -->
-        <div class="space-y-2">
-          <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            {{ t('options.keepExif') }}
-          </label>
-          <a-switch v-model:checked="options.keepExif" />
+          <a-select 
+            v-model:value="options.model" 
+            class="w-full">
+            <a-select-option v-for="model in supportedModels" :key="model" :value="model">
+              {{ model.toUpperCase() }}
+            </a-select-option>
+          </a-select>
         </div>
         
         <!-- 压缩质量 -->
         <div class="space-y-2" v-if="showQuality">
           <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            {{ t('options.compression') }}
+            {{ t('removeBg.compression') }}
           </label>
           <a-slider 
             v-model:value="options.quality" 
@@ -548,52 +499,10 @@ const processIMG = async () => {
           </a-input-number>
         </div>
         
-        <!-- 水印设置（总开关） -->
+        <!-- 输出格式 -->
         <div class="space-y-2">
           <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            {{ t('options.watermark') }}
-          </label>
-          <a-switch v-model:checked="options.watermark.enabled" />
-        </div>
-
-        <!-- 水印详细设置（启用后显示） -->
-        <div v-if="options.watermark.enabled" class="space-y-4">
-          <div class="space-y-1">
-            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ t('options.watermarkText') }}</label>
-            <a-input v-model:value="options.watermark.text" :placeholder="t('options.watermarkTextPlaceholder')" class="w-full" />
-          </div>
-
-          <div class="space-y-1">
-            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ t('options.watermarkPosition') }}</label>
-            <a-select v-model:value="options.watermark.position" class="w-full">
-              <a-select-option value="top-left">{{ t('options.topLeft') }}</a-select-option>
-              <a-select-option value="top-right">{{ t('options.topRight') }}</a-select-option>
-              <a-select-option value="bottom-left">{{ t('options.bottomLeft') }}</a-select-option>
-              <a-select-option value="bottom-right">{{ t('options.bottomRight') }}</a-select-option>
-              <a-select-option value="center">{{ t('options.center') }}</a-select-option>
-            </a-select>
-          </div>
-
-          <div class="space-y-1">
-            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ t('options.fontSize') }}</label>
-            <a-input-number v-model:value="options.watermark.fontSize" :min="8" :max="100" class="w-full" />
-          </div>
-
-          <div class="space-y-1">
-            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ t('options.watermarkColor') }}</label>
-            <a-input v-model:value="options.watermark.color" type="color" class="w-full max-w-40" />
-          </div>
-
-          <div class="space-y-1">
-            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ t('options.watermarkOpacity') }}</label>
-            <a-slider v-model:value="options.watermark.opacity" :min="0" :max="1" :step="0.1" />
-          </div>
-        </div>
-
-        <!-- 输出格式（放在最后） -->
-        <div class="space-y-2">
-          <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            {{ t('options.outputFormat') }}
+            {{ t('removeBg.outputFormat') }}
           </label>
           <a-select 
             v-model:value="options.outputformat" 
@@ -604,10 +513,11 @@ const processIMG = async () => {
             </a-select-option>
           </a-select>
           
+          <!-- 格式提示 -->
           <div class="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-2 rounded"
                v-if="options.outputformat === 'icns' || options.outputformat === 'ico'">
             <delete-one :size="12" class="inline mr-1" />
-            {{ t(`options.notice.${options.outputformat}`) }}
+            {{ t(`removeBg.notice.${options.outputformat}`) }}
           </div>
         </div>
       </div>
@@ -623,7 +533,7 @@ const processIMG = async () => {
             class="w-30 flex items-center">
               <play-one :size="16" v-if="!loading"/>
               <span v-show="!loading">
-                {{ t('imgProcess.batchProcess') }}
+                {{ t('removeBg.batchProcess') }}
               </span>
           </a-button>
           <a-button 
@@ -631,7 +541,7 @@ const processIMG = async () => {
             :disabled="previewList.filter(i => i.status === 1).length === 0"
             class="w-30 flex items-center">
             <export :size="16" class="mr-1" />
-            {{ t('imgProcess.exportAll') }}
+            {{ t('removeBg.exportAll') }}
           </a-button>
         </div>
       </div>

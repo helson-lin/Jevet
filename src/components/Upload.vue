@@ -1,9 +1,10 @@
 <script lang="ts" setup>
 import { ref, computed, defineEmits, defineProps } from "vue";
-import { message } from "ant-design-vue";
-import type { UploadChangeParam, UploadProps } from 'ant-design-vue';
-import { PlusOutlined, LoadingOutlined } from "@ant-design/icons-vue";
-import {  Upload } from '@icon-park/vue-next'
+import { message, type UploadFile } from "ant-design-vue";
+import { useI18n } from 'vue-i18n';
+import Icon from "./Icon.vue";
+
+const { t } = useI18n();
 
 const props = defineProps({
     list: {
@@ -13,28 +14,35 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:list'])
+const notAllow = ['icns', 'ico', 'heic']
 const fileList = computed({
- set (value) {
-    emit('update:list', value)
- },
- get () {
+  set (value: UploadFile[]) {
+    emit('update:list', value.filter(i => !notAllow.some(j => i.name.toLowerCase().endsWith(j))))
+  },
+  get () {
     return props.list;
- }
+  }
 });
 const loading = ref<boolean>(false);
 
 const beforeUpload = (file: any) => {
   const isJpgOrPng = file.type.startsWith('image')
+  const isRestrictedFormat = notAllow.some(format => file.name.toLowerCase().endsWith(`.${format}`))
+  
+  if (isRestrictedFormat) {
+    message.error(t('upload.formatNotAllowed'));
+    return false;
+  }
+  
   if (!isJpgOrPng) {
-    message.error('You can only upload image file!');
+    message.error(t('upload.imageOnly'));
     return false;
   }
   const isLt2M = file.size / 1024 / 1024 < 100;
   if (!isLt2M) {
-    message.error('Image must smaller than 100MB!');
+    message.error(t('upload.sizeLimitError'));
     return false;
   }
-  // todo: upload
   return false;
 };
 </script>
@@ -50,8 +58,10 @@ const beforeUpload = (file: any) => {
     >
       <div class="w-full h-48 flex flex-col items-center justify-center">
         <loading-outlined v-if="loading"></loading-outlined>
-        <upload v-else theme="outline" size="40" fill="#333" strokeLinejoin="bevel" strokeLinecap="square"/>
-        <div class="ant-upload-text mt-4">拖拽文件到这里或者点击上传</div>
+        <Icon name="upload" size="40" />
+        <div class="ant-upload-text mt-4">{{ t('upload.dragText') }}</div>
+        <div class="ant-upload-text mt-4 text-gray-500 text-xs">{{ t('upload.formatNotAllowed') }}</div>
+        <div class="ant-upload-text mt-4 text-gray-500 text-xs">{{ t('upload.sizeLimitError') }}</div>
       </div>
     </a-upload-dragger>
   </div>
