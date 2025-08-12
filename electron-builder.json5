@@ -5,12 +5,17 @@
   "asar": true,
   "asarUnpack": [
     "**/node_modules/sharp/**/*",
-    "**/node_modules/png2icons/**/*"
+    "**/node_modules/png2icons/**/*",
+    "**/node_modules/onnxruntime-node/**/*"
   ],
   "extraResources": [
     {
         "from": "node_modules/sharp/",
         "to": "node_modules/sharp/"
+    },
+    {
+        "from": "node_modules/onnxruntime-node/",
+        "to": "node_modules/onnxruntime-node/"
     }
   ],
   "productName": "Jevet",

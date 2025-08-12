@@ -51,10 +51,11 @@ export default defineConfig(({ command }) => {
                 process.env.NODE_ENV === 'development' ?
                 Object.keys('dependencies' in pkg ? { ...pkg.dependencies } : {})
                 :
-                [
-                  'sharp',
-                  'png2icons'
-                ]
+                 [
+                   'sharp',
+                   'png2icons',
+                   'onnxruntime-node'
+                 ]
               },
             },
           },
@@ -73,10 +74,11 @@ export default defineConfig(({ command }) => {
                 external:  process.env.NODE_ENV === 'development' ?
                 Object.keys('dependencies' in pkg ? { ...pkg.dependencies } : {})
                 :
-                [
-                  'sharp',
-                  'png2icons'
-                ]
+                 [
+                   'sharp',
+                   'png2icons',
+                   'onnxruntime-node'
+                 ]
               },
             },
           },
