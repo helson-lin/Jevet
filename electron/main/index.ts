@@ -7,6 +7,50 @@ import { setupWindowHandlers } from "./ipc/window";
 import { setupFileHandlers } from "./ipc/file";
 import { setupImageHandlers } from "./ipc/image";
 import { setupConfig, setupNativeTheme } from './ipc/config/index'
+
+// Fix native module path for Windows (both dev and production)
+if (process.platform === "win32") {
+  const isDev = !!process.env.VITE_DEV_SERVER_URL;
+  
+  // Try multiple possible paths for onnxruntime-node
+  const possiblePaths = [];
+  
+  if (isDev) {
+    // Development paths
+    possiblePaths.push(
+      path.join(process.cwd(), 'node_modules/onnxruntime-node/bin/napi-v3/win32/x64/onnxruntime_binding.node'),
+      path.join(__dirname, '../../node_modules/onnxruntime-node/bin/napi-v3/win32/x64/onnxruntime_binding.node')
+    );
+  } else {
+    // Production paths
+    const appPath = path.dirname(app.getPath('exe'));
+    possiblePaths.push(
+      path.join(appPath, 'onnxruntime_binding.node'),
+      path.join(appPath, 'resources/onnxruntime_binding.node'),
+      path.join(appPath, 'resources/node_modules/onnxruntime-node/bin/napi-v3/win32/x64/onnxruntime_binding.node')
+    );
+  }
+  
+  // Find the first existing path
+  let nativePath = null;
+  for (const possiblePath of possiblePaths) {
+    if (fs.existsSync(possiblePath)) {
+      nativePath = possiblePath;
+      console.log('Found onnxruntime native module at:', nativePath);
+      break;
+    }
+  }
+  
+  if (nativePath) {
+    // Set environment variable to help onnxruntime-node find the native module
+    process.env.ONNXRUNTIME_NODE_BINDING_PATH = nativePath;
+    // Also try setting the binary path
+    process.env.ORT_BINARY_PATH = path.dirname(nativePath);
+  } else {
+    console.warn('onnxruntime native module not found in any of the expected paths:', possiblePaths);
+  }
+}
+
 // Disable GPU Acceleration for Windows 7
 if (os.release().startsWith("6.1")) app.disableHardwareAcceleration();
 

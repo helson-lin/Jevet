@@ -2,10 +2,14 @@ import { ipcMain } from 'electron';
 import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import * as png2icns from 'png2icons';
 // 延迟加载 onnxruntime-node，避免打包期处理原生绑定
 import { MODEL_OPTION, type ModelOptionItem, getConfig } from './config/index'
+
+// ES 模块兼容的 __dirname
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 interface IMG_ITEM {
   buffer: ArrayBuffer;
@@ -351,7 +355,56 @@ async function removeBg(
     const modelDir = config.data.modelDir;
     const modelDirPath = modelDir || path.join(process.cwd(), 'model');
     const modelPath = path.join(modelDirPath, `${inputOptions.model || 'u2net'}.onnx`);
-    const ort = await import('onnxruntime-node');
+    // 动态加载 onnxruntime-node，增加 Windows 兼容性
+    let ort;
+    try {
+      ort = await import('onnxruntime-node');
+    } catch (firstError) {
+      console.warn('First attempt to load onnxruntime-node failed:', firstError.message);
+      
+      // 在 Windows 上尝试手动设置模块路径
+      if (process.platform === 'win32') {
+        const possibleModulePaths = [
+          path.join(process.cwd(), 'node_modules/onnxruntime-node'),
+          path.join(__dirname, '../../../node_modules/onnxruntime-node'),
+          path.join(process.resourcesPath || process.cwd(), 'node_modules/onnxruntime-node')
+        ];
+        
+        let loaded = false;
+        for (const modulePath of possibleModulePaths) {
+          try {
+            console.log('Trying to load onnxruntime-node from:', modulePath);
+            // 先检查模块是否存在
+            const moduleIndexPath = path.join(modulePath, 'dist/index.js');
+            if (fs.existsSync(moduleIndexPath)) {
+              ort = await require(modulePath);
+              loaded = true;
+              console.log('Successfully loaded onnxruntime-node from:', modulePath);
+              break;
+            }
+          } catch (e) {
+            console.warn('Failed to load from:', modulePath, e.message);
+          }
+        }
+        
+        if (!loaded) {
+          const errorMsg = [
+            'Failed to load onnxruntime-node. This is likely due to missing native binaries.',
+            'Please try the following steps to fix this issue:',
+            '1. Run: npm run check:ort (to diagnose the issue)',
+            '2. Run: npm run fix:ort (to completely reinstall onnxruntime-node)',
+            '3. Run: npm run setup:win (to rebuild native modules)',
+            '4. If still failing, you may need to install Visual Studio Build Tools',
+            '',
+            'Searched paths:',
+            ...possibleModulePaths.map(p => `  - ${p}`)
+          ].join('\n');
+          throw new Error(errorMsg);
+        }
+      } else {
+        throw firstError;
+      }
+    }
     let session: any;
     // 根据平台与配置选择 EP：Win/Linux 且 useGPU=true 时优先 CUDA，否则 CPU
     const allowGPU = Boolean(config?.data?.useGPU);
