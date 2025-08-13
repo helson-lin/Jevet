@@ -52,7 +52,7 @@ export const useStore = defineStore('main', {
             modelDir: '',
             outputDir: '',
             useGPU: false,
-            graphOptimizationLevel: 'basic',
+            graphOptimizationLevel: 'basic' as AppConfig['graphOptimizationLevel'],
             models: {} as AppConfig['models']
         }
     },
@@ -78,7 +78,7 @@ export const useStore = defineStore('main', {
                     this.modelDir = config.modelDir
                     this.outputDir = config.outputDir
                     this.useGPU = config.useGPU ?? false
-                    this.graphOptimizationLevel = (config.graphOptimizationLevel as any) || 'basic'
+                    this.graphOptimizationLevel = (config.graphOptimizationLevel ?? 'basic') as AppConfig['graphOptimizationLevel']
                     this.models = config.models
                     return true
                 }
