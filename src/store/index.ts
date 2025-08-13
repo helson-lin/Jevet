@@ -6,6 +6,8 @@ interface AppOptions {
     outputDir: string
     language: string
     theme: string
+    useGPU?: boolean
+    graphOptimizationLevel?: 'disabled' | 'basic' | 'extended' | 'all'
     models: Record<string, {
         width: number
         height: number
@@ -23,6 +25,8 @@ interface AppConfig {
     language: 'zh' | 'en'
     modelDir: string
     outputDir: string
+    useGPU?: boolean
+    graphOptimizationLevel?: 'disabled' | 'basic' | 'extended' | 'all'
     models: Record<string, {
         width: number
         height: number
@@ -47,6 +51,8 @@ export const useStore = defineStore('main', {
             language: 'zh' as AppConfig['language'],
             modelDir: '',
             outputDir: '',
+            useGPU: false,
+            graphOptimizationLevel: 'basic',
             models: {} as AppConfig['models']
         }
     },
@@ -56,6 +62,8 @@ export const useStore = defineStore('main', {
             language: state.language,
             modelDir: state.modelDir,
             outputDir: state.outputDir,
+            useGPU: state.useGPU,
+            graphOptimizationLevel: state.graphOptimizationLevel,
             models: state.models
         })
     },
@@ -69,6 +77,8 @@ export const useStore = defineStore('main', {
                     this.language = config.language
                     this.modelDir = config.modelDir
                     this.outputDir = config.outputDir
+                    this.useGPU = config.useGPU ?? false
+                    this.graphOptimizationLevel = (config.graphOptimizationLevel as any) || 'basic'
                     this.models = config.models
                     return true
                 }

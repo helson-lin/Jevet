@@ -22,6 +22,10 @@ export interface AppOptions {
     outputDir: string;
     language:  string;
     theme:  string;
+    // 是否启用 GPU（CUDA）推理
+    useGPU?: boolean;
+    // ONNX Runtime 图优化等级: disabled/basic/extended/all
+    graphOptimizationLevel?: 'disabled' | 'basic' | 'extended' | 'all';
     models: ModelOption;
 }
 
@@ -34,6 +38,15 @@ export const MODEL_OPTION: ModelOption = {
         license: 'bria-rmbg-1.4',
         homepage: 'https://github.com/danielgatis/rembg',
         md5: '8bb9b16ff49cda31e7784852873cfd0d', 
+        feedInput: 'input'
+    },
+    'bria-rmbg-2.0.onnx': {
+        width: 1024,
+        height: 1024,
+        size: '176MB',
+        license: 'bria-rmbg-1.4',
+        homepage: 'https://github.com/danielgatis/rembg',
+        md5: '55913f5ac5540eb64a069204a8bee870', 
         feedInput: 'input'
     },
     'u2net.onnx': {
@@ -108,6 +121,8 @@ export function setupConfig() {
         outputDir: app.getPath("downloads"), // 使用用户的下载目录
         language: "zh",
         theme: "auto",
+        useGPU: false,
+        graphOptimizationLevel: 'basic',
         models: MODEL_OPTION
     };
 

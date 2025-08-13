@@ -38,6 +38,8 @@ interface AppOptions {
   outputDir: string;
   language: string;
   theme: string;
+  useGPU?: boolean;
+  graphOptimizationLevel?: 'disabled' | 'basic' | 'extended' | 'all';
   models: ModelOption;
 }
 
@@ -320,12 +322,40 @@ const cancelDownload = (modelId: string) => {
                 </div>
               </div>
             </div>
+
+            <!-- 推理配置 -->
+            <div class="flex flex-col space-y-3">
+              <label class="text-sm font-medium text-gray-700 dark:text-zinc-300">{{ t('settings.inference') }}</label>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex items-center justify-between border rounded px-3 py-2">
+                  <span class="text-sm text-gray-700 dark:text-zinc-300">{{ t('settings.useGPU') }}</span>
+                  <a-switch
+                    :checked="settings.useGPU"
+                    @change="(val: boolean) => updateSettings({ useGPU: val }, () => { store.getConfig(); message.success(t('settings.updateSuccess')) })"
+                  />
+                </div>
+                <div class="flex items-center justify-between border rounded px-3 py-2">
+                  <span class="text-sm text-gray-700 dark:text-zinc-300">{{ t('settings.graphOptimizationLevel') }}</span>
+                  <a-select
+                    :value="settings.graphOptimizationLevel || 'basic'"
+                    class="w-40"
+                    @change="(val: any) => updateSettings({ graphOptimizationLevel: val }, () => { store.getConfig(); message.success(t('settings.updateSuccess')) })"
+                  >
+                    <a-select-option value="disabled">disabled</a-select-option>
+                    <a-select-option value="basic">basic</a-select-option>
+                    <a-select-option value="extended">extended</a-select-option>
+                    <a-select-option value="all">all</a-select-option>
+                  </a-select>
+                </div>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-zinc-400">{{ t('settings.inferenceTips') }}</p>
+            </div>
           </div>
         </section>
 
         <!-- 模型管理 -->
         <section class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm">
-          <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-between">
             <h2
               class="text-large font-semibold text-gray-900 dark:text-zinc-300"
             >
@@ -339,6 +369,11 @@ const cancelDownload = (modelId: string) => {
               <Icon name="refresh" :size="18" light="#EAEAEA" dark="#efefef" />
             </div>
           </div>
+          <!-- 模型选择提示信息-->
+          <div class="text-sm text-gray-500 dark:text-zinc-300 flex flex-col items-start my-2 bg-amber-50 dark:bg-amber-900/20 p-2 rounded" v-if="models.length > 0">
+            <span v-html="t('settings.modelNotice')"></span>
+          </div>
+
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div

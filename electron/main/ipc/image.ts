@@ -31,6 +31,11 @@ interface ImageProcessOptions {
   }
 }
 
+/**
+ * 注册图像相关的 IPC 处理器，包括：
+ * - compress：图片压缩/转码
+ * - remove：背景移除（ONNX 推理）
+ */
 export function setupImageHandlers() {
   //  实现图片转码
   ipcMain.handle("compress", async (_, arg: { imgs: IMG_ITEM[]; options?: ImageProcessOptions }) => {
@@ -123,6 +128,110 @@ export function setupImageHandlers() {
   });
 }
 
+/**
+ * 将 ORT 输出张量统一转换为 width x height 的 8bit mask
+ * 兼容常见输出形状：
+ * - [1,1,H,W]
+ * - [1,H,W]
+ * - [H,W]
+ * - [1,C,H,W]（取 argmax 通道）
+ * - [1,H,W,1] / [1,H,W,C]
+ */
+/**
+ * 将 ORT 输出张量统一转换为 [width x height] 的 8bit mask。
+ *
+ * @param outTensor ONNX 推理输出张量（可能包含 data/dims/dimensions 字段）
+ * @param width 目标宽度
+ * @param height 目标高度
+ * @returns 按 width*height 展开的 8bit 掩码（0-255）
+ */
+async function extractMaskResized(outTensor: any, width: number, height: number): Promise<Uint8Array> {
+  // 读取数据与形状
+  const data: Float32Array | number[] = outTensor?.data || outTensor;
+  const dims: number[] = outTensor?.dims || outTensor?.dimensions || [];
+
+  // 将任意形状转为 [H, W] 概率图
+  let prob2D: Float32Array;
+  let srcH = 0;
+  let srcW = 0;
+  if (dims.length === 4) {
+    // 可能是 [1,1,H,W] 或 [1,C,H,W] 或 [1,H,W,1]
+    const [n, c, h, w] = dims;
+    if (c === 1) {
+      prob2D = new Float32Array(h * w);
+      for (let i = 0; i < h * w; i++) prob2D[i] = (data as any)[i];
+      srcH = h; srcW = w;
+    } else if (n === 1 && h && w && c > 1) {
+      // [1,C,H,W] 取 argmax
+      prob2D = new Float32Array(h * w);
+      for (let i = 0; i < h * w; i++) {
+        let maxVal = -Infinity;
+        for (let ch = 0; ch < c; ch++) {
+          const v = (data as any)[ch * h * w + i];
+          if (v > maxVal) maxVal = v;
+        }
+        prob2D[i] = maxVal;
+      }
+      srcH = h; srcW = w;
+    } else {
+      // 兜底：按最后两个维度为 H/W 读取
+      const h2 = dims[dims.length - 2];
+      const w2 = dims[dims.length - 1];
+      prob2D = new Float32Array(h2 * w2);
+      for (let i = 0; i < h2 * w2; i++) prob2D[i] = (data as any)[i];
+      srcH = h2; srcW = w2;
+    }
+  } else if (dims.length === 3) {
+    // [1,H,W] 或 [H,W,1]
+    const h = dims[dims.length - 2];
+    const w = dims[dims.length - 1];
+    prob2D = new Float32Array(h * w);
+    for (let i = 0; i < h * w; i++) prob2D[i] = (data as any)[i];
+    srcH = h; srcW = w;
+  } else if (dims.length === 2) {
+    // [H,W]
+    const h = dims[0];
+    const w = dims[1];
+    prob2D = new Float32Array(h * w);
+    for (let i = 0; i < h * w; i++) prob2D[i] = (data as any)[i];
+    srcH = h; srcW = w;
+  } else {
+    // 未知形状，直接按 width*height 读取
+    prob2D = new Float32Array(width * height);
+    for (let i = 0; i < width * height && i < (data as any).length; i++) prob2D[i] = (data as any)[i];
+    srcH = height; srcW = width;
+  }
+
+  // 归一化到 [0,255]
+  let min = Infinity, max = -Infinity;
+  for (let i = 0; i < prob2D.length; i++) {
+    const v = prob2D[i];
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  const range = max - min || 1;
+  for (let i = 0; i < prob2D.length; i++) prob2D[i] = (prob2D[i] - min) / range;
+
+  // 若预测尺寸与目标尺寸不一致，进行最近邻缩放到 width x height
+  // 这里实现一个简单的最近邻缩放（避免再引入依赖）
+  const out = new Uint8Array(width * height);
+  for (let y = 0; y < height; y++) {
+    const sy = Math.min(srcH - 1, Math.round((y / height) * srcH));
+    for (let x = 0; x < width; x++) {
+      const sx = Math.min(srcW - 1, Math.round((x / width) * srcW));
+      const sv = prob2D[sy * srcW + sx];
+      out[y * width + x] = Math.max(0, Math.min(255, Math.round(sv * 255)));
+    }
+  }
+  return out;
+}
+/**
+ * 根据目标格式设置 sharp 的输出参数。
+ *
+ * @param sharper sharp 实例
+ * @param format 目标输出格式（png/webp/jpeg/jp2/tiff/gif/heif/icns/ico）
+ * @param baseOptions 基础选项（quality）
+ */
 async function processOutputFormat(sharper: sharp.Sharp, format: string, baseOptions: { quality: number }) {
   switch (format) {
     case "png":
@@ -165,6 +274,13 @@ async function processOutputFormat(sharper: sharp.Sharp, format: string, baseOpt
   }
 }
 
+/**
+ * 处理特殊容器格式（icns/ico），返回最终用于预览/保存的二进制。
+ *
+ * @param outputPath 临时输出文件路径
+ * @param format 目标格式
+ * @returns 最终图片 Buffer
+ */
 async function processSpecialFormats(outputPath: string, format: string): Promise<Buffer> {
   if (format === 'icns') {
     const iconBuffer = fs.readFileSync(outputPath);
@@ -182,23 +298,39 @@ async function processSpecialFormats(outputPath: string, format: string): Promis
 } 
 
 // 获取模型的配置
-function getModelOption (modelName): ModelOptionItem {
-  if (MODEL_OPTION[modelName]) {
-      return MODEL_OPTION[modelName]
-  } else {
-      return {
-          width: 320,
-          height: 320,
-          size: 'unkown',
-          license: 'unkown',
-          md5: 'unkown',
-          homepage: 'unkown',
-          feedInput: 'input.1'
-      }
-  }
+/**
+ * 获取指定模型文件名的配置项。
+ *
+ * @param modelName 模型文件名（含扩展名，如 'u2net.onnx'）
+ * @returns 模型配置项
+ */
+function getModelOption(modelName: string): ModelOptionItem {
+  if (MODEL_OPTION[modelName]) return MODEL_OPTION[modelName];
+  const lower = modelName?.toLowerCase?.() || '';
+  const key = Object.keys(MODEL_OPTION).find(k => k.toLowerCase() === lower);
+  if (key) return MODEL_OPTION[key];
+  return {
+    width: 320,
+    height: 320,
+    size: 'unkown',
+    license: 'unkown',
+    md5: 'unkown',
+    homepage: 'unkown',
+    feedInput: 'input.1'
+  } as ModelOptionItem;
 }
 
 // 实现抠图
+/**
+ * 执行背景移除：加载 ONNX 模型、预处理图像、前向推理、生成 RGBA 输出并写入文件。
+ *
+ * @param inputBuffer 输入图像二进制
+ * @param inputOptions 处理选项
+ * @param inputOptions.outputformat 输出格式（png/jpg/jpeg/webp/gif/jp2/tiff/heif/icns/ico）
+ * @param inputOptions.model 模型名（不含扩展名，如 'u2net'、'bria-rmbg-2.0'）
+ * @param inputOptions.uid 任务唯一标识
+ * @returns 包含 uid、输出路径、文件大小、base64 的结果对象
+ */
 async function removeBg(
   inputBuffer: Buffer,
   inputOptions:  {
@@ -220,94 +352,186 @@ async function removeBg(
     const modelDirPath = modelDir || path.join(process.cwd(), 'model');
     const modelPath = path.join(modelDirPath, `${inputOptions.model || 'u2net'}.onnx`);
     const ort = await import('onnxruntime-node');
-    const session = await (ort as any).InferenceSession.create(modelPath);
-    console.log("模型加载完成");
+    let session: any;
+    // 根据平台与配置选择 EP：Win/Linux 且 useGPU=true 时优先 CUDA，否则 CPU
+    const allowGPU = Boolean(config?.data?.useGPU);
+    const candidateEPs = (process.platform === 'win32' || process.platform === 'linux') && allowGPU
+      ? ['cuda', 'cpu']
+      : ['cpu'];
+    try {
+      // 构建 ONNX Runtime 会话参数
+      // executionProviders: 推理执行后端，优先使用 CUDA（如可用），否则回退到 CPU
+      // graphOptimizationLevel: 图优化等级，'basic' 表示基础优化
+      // intraOpNumThreads: 单个操作的线程数
+      // interOpNumThreads: 操作间的线程数
+      // enableCpuMemArena: 是否启用 CPU 内存池（此处关闭以减少内存占用）
+      // enableMemPattern: 是否启用内存模式优化（此处关闭以兼容性优先）
+      // logSeverityLevel: 日志级别，0 表示最详细
+      const sessionOptions: any = {
+        executionProviders: candidateEPs,
+        graphOptimizationLevel: (config?.data?.graphOptimizationLevel || 'basic'),
+        intraOpNumThreads: 3,
+        interOpNumThreads: 3,
+        enableCpuMemArena: false,
+        enableMemPattern: false,
+        logSeverityLevel: 0
+      };
+      console.log('创建 ORT 会话', sessionOptions);
+      session = await (ort as any).InferenceSession.create(modelPath, sessionOptions);
+    } catch (err) {
+      console.log('创建 ORT 会话失败，尝试使用最小配置回退', err);
+      session = await (ort as any).InferenceSession.create(modelPath, { executionProviders: ['cpu'] });
+    }
     // 获取模型的名称
     const filename = path.basename(modelPath);
     // 通过模型的名称获取模型的配置信息
     const options = getModelOption(filename);
-    
+    console.log("模型加载完成", filename, options, {
+      executionProviders: candidateEPs,
+      graphOptimizationLevel: (config?.data?.graphOptimizationLevel || 'basic'),
+      intraOpNumThreads: 3,
+      interOpNumThreads: 3,
+      enableCpuMemArena: false,
+      enableMemPattern: false,
+      logSeverityLevel: 0
+    });
+    // 从模型元数据推断输入名称与目标尺寸，增强健壮性
+    let feedInputName = options.feedInput;
+    try {
+      const inputNames: string[] = (session as any).inputNames || [];
+      const inputMeta = (session as any).inputMetadata || {};
+      if ((!feedInputName || !inputMeta[feedInputName]) && inputNames.length > 0) {
+        feedInputName = inputNames[0];
+      }
+      // 解析 dims: [1,3,H,W]
+      const meta = inputMeta[feedInputName];
+      const dims: any[] = meta?.dimensions || [];
+      const dimH = typeof dims[2] === 'number' ? dims[2] : undefined;
+      const dimW = typeof dims[3] === 'number' ? dims[3] : undefined;
+      if ((!options.width || options.width <= 0) && dimW) options.width = dimW;
+      if ((!options.height || options.height <= 0) && dimH) options.height = dimH;
+    } catch (e) {
+      console.warn('读取模型输入元数据失败，使用默认配置', e);
+    }
+    console.log('读取图像并调整大小，确保转换为RGB格式', options.width, options.height);
     // 2. 读取图像并调整大小，确保转换为RGB格式
+    const targetW = options.width && options.width > 0 ? options.width : (filename.toLowerCase().includes('ben2') ? 1024 : 320);
+    const targetH = options.height && options.height > 0 ? options.height : (filename.toLowerCase().includes('ben2') ? 1024 : 320);
     const imageBuffer = await sharp(inputBuffer)
-      .resize(options.width, options.height)
+      .resize(targetW, targetH)
       .removeAlpha()  // 移除 alpha 通道
+      .toColorspace('srgb')
       .raw()
       .toBuffer({ resolveWithObject: true });
       
     const { data, info } = imageBuffer;
     const { width, height, channels } = info;
+    console.log('检查通道数')
 
     // 3. 检查通道数
     if (channels !== 3) {
         console.warn(`Warning: Expected 3 channels (RGB), but got ${channels}. Attempting to continue...`);
     }
-
+    console.log('预处理图像数据')
     // 4. 预处理图像数据
     const floatArr = new Float32Array(width * height * 3);
     let j = 0;
     for (let i = 0; i < data.length; i++) {
         floatArr[j++] = data[i] / 255;
     }
-
+    console.log('预处理图像数据1')
+    // 仅在 bria/rmbg 模型时进行 mean/std 标准化，避免影响其他模型
+    const isBriaModel = /rmbg/i.test(filename) || /bria/i.test(options.license || '');
     const floatArr1 = new Float32Array(width * height * 3);
-    for (let i = 0; i < floatArr.length; i += 3) {
-        floatArr1[i] = (floatArr[i] - 0.485) / 0.229;
-        floatArr1[i + 1] = (floatArr[i + 1] - 0.456) / 0.224;
-        floatArr1[i + 2] = (floatArr[i + 2] - 0.406) / 0.225;
+    if (isBriaModel) {
+      for (let i = 0; i < floatArr.length; i += 3) {
+          floatArr1[i] = (floatArr[i] - 0.485) / 0.229;
+          floatArr1[i + 1] = (floatArr[i + 1] - 0.456) / 0.224;
+          floatArr1[i + 2] = (floatArr[i + 2] - 0.406) / 0.225;
+      }
+    } else {
+      // 其他模型沿用 0..1 归一化
+      floatArr1.set(floatArr);
     }
-
+    console.log('预处理图像数据2', isBriaModel)
     const floatArr2 = new Float32Array(width * height * 3);
     let k = 0;
     for (let i = 0; i < floatArr.length; i += 3) {
-        floatArr2[k++] = floatArr[i];
+        // R 通道（使用归一化后的数据）
+        floatArr2[k++] = floatArr1[i];
     }
-
+    console.log('预处理图像数据3')
     let l = width * height;
     for (let i = 1; i < floatArr.length; i += 3) {
-        floatArr2[l++] = floatArr[i];
+        // G 通道
+        floatArr2[l++] = floatArr1[i];
     }
-
+    console.log('预处理图像数据4')
     let m = 2 * width * height;
     for (let i = 2; i < floatArr.length; i += 3) {
-        floatArr2[m++] = floatArr[i];
+        // B 通道
+        floatArr2[m++] = floatArr1[i];
     }
-
+    console.log('创建 ONNX 输入')
     // 5. 创建 ONNX 输入
-    const input = new ort.Tensor('float32', floatArr2, [1, 3, width, height]);
-    const feeds = { };
-    feeds[options.feedInput] = input
-    // 6. 运行 ONNX 模型
-    const results = await session.run(feeds);
-    const pred: any = results[session.outputNames[0]].data;
-
-    // 7. 后处理结果
-    const outputBuffer = new Uint8Array(width * height * 4); // RGBA，用于输出灰度图
-    const cutoutBuffer = new Uint8Array(width * height * 4); // RGBA，用于抠图结果
-
-    for (let i = 0; i < pred.length; i++) {
-        const value = Math.round(pred[i] * 255); // 将预测值缩放到 0-255 范围
-        const index = i * 4;
-
-        // 创建灰度图
-        outputBuffer[index] = value;       // R
-        outputBuffer[index + 1] = value;   // G
-        outputBuffer[index + 2] = value;   // B
-        outputBuffer[index + 3] = 255;     // A
-
-        // 创建抠图结果
-        // 如果预测值大于某个阈值，则认为是前景，保留原始颜色，否则设为透明
-        const threshold = 128;  // 可以根据需要调整阈值
-        if (value > threshold) {
-            cutoutBuffer[index] = data[i * 3];         // R
-            cutoutBuffer[index + 1] = data[i * 3 + 1];     // G
-            cutoutBuffer[index + 2] = data[i * 3 + 2];     // B
-            cutoutBuffer[index + 3] = 255;             // A (不透明)
-        } else {
-            cutoutBuffer[index] = 0;         // R
-            cutoutBuffer[index + 1] = 0;     // G
-            cutoutBuffer[index + 2] = 0;     // B
-            cutoutBuffer[index + 3] = 0;     // A (透明)
-        }
+    const inputNCHW = new (ort as any).Tensor('float32', floatArr2, [1, 3, height, width]);
+    const inputNHWC = new (ort as any).Tensor('float32', floatArr1, [1, height, width, 3]);
+    const feeds: Record<string, any> = {};
+    // 根据模型元数据尝试判断布局
+    let preferNHWC = false;
+    try {
+      const inputMeta = (session as any).inputMetadata || {};
+      const meta = inputMeta[feedInputName];
+      const dims: any[] = meta?.dimensions || [];
+      if (dims?.length === 4) {
+        // 如果最后一维是 3，判定为 NHWC
+        preferNHWC = dims[3] === 3;
+      }
+    } catch (_) { /* 忽略 */ }
+    let results: Record<string, any> = {};
+    try {
+      feeds[feedInputName] = preferNHWC ? inputNHWC : inputNCHW;
+      console.log('运行 ONNX 模型，布局=', preferNHWC ? 'NHWC' : 'NCHW');
+      results = await session.run(feeds);
+    } catch (errFirst) {
+      console.warn('首次运行失败，尝试切换布局重试', errFirst);
+      try {
+        feeds[feedInputName] = preferNHWC ? inputNCHW : inputNHWC;
+        console.log('运行 ONNX 模型（回退），布局=', preferNHWC ? 'NCHW' : 'NHWC');
+        results = await session.run(feeds);
+      } catch (errSecond) {
+        throw errSecond;
+      }
+    }
+    const outNames: string[] = (session as any).outputNames || Object.keys(results) || [];
+    const outName = outNames[0];
+    let outTensor: any = outName ? results[outName] : undefined;
+    if (!outTensor) {
+      const values = Object.values(results);
+      outTensor = values && values.length > 0 ? values[0] : undefined;
+    }
+    if (!outTensor) {
+      throw new Error('ONNX 推理未返回任何输出张量');
+    }
+    const predMaskResized = await extractMaskResized(outTensor, width, height);
+    console.log('后处理结果')
+    // 7. 后处理结果（根据 mask 合成 RGBA）
+    const cutoutBuffer = new Uint8Array(width * height * 4);
+    for (let i = 0; i < width * height; i++) {
+      const alpha = predMaskResized[i];
+      const base = i * 4;
+      const srcBase = i * 3;
+      if (alpha > 127) {
+        cutoutBuffer[base] = data[srcBase] || 0;
+        cutoutBuffer[base + 1] = data[srcBase + 1] || 0;
+        cutoutBuffer[base + 2] = data[srcBase + 2] || 0;
+        cutoutBuffer[base + 3] = 255;
+      } else {
+        cutoutBuffer[base] = 0;
+        cutoutBuffer[base + 1] = 0;
+        cutoutBuffer[base + 2] = 0;
+        cutoutBuffer[base + 3] = 0;
+      }
     }
     //  // 8. 保存结果为图片
     //  await sharp(outputBuffer, { raw: { width: width, height: height, channels: 4 } })
@@ -315,7 +539,7 @@ async function removeBg(
     //  .toFile(outputPath);
 
     // console.log(`Image saved to ${outputPath}`);
-
+    console.log('保存抠图结果')
     // 保存抠图结果
     await sharp(cutoutBuffer, { raw: { width: width, height: height, channels: 4 } })
         .png()
@@ -323,18 +547,25 @@ async function removeBg(
 
     console.log(`Cutout image saved to ${outputPath}`);
 
-    // 获取文件大小
+    // 获取文件大小和 base64
     const stats = fs.statSync(outputPath);
     const fileSizeInBytes = stats.size;
+    const outPngBuffer = fs.readFileSync(outputPath);
     return {
       uid: inputOptions.uid,
       outputPath,
       fileSize: fileSizeInBytes,
-      base64Image: `data:image/png;base64,${cutoutBuffer.toString()}`,
+      base64Image: `data:image/png;base64,${outPngBuffer.toString('base64')}`,
     }
 
   } catch (e) {
-    console.warn(e)
+    console.error('removeBg error:', e)
+    return {
+      uid: inputOptions.uid,
+      outputPath: '',
+      fileSize: 0,
+      base64Image: ''
+    }
   }
 
 }
@@ -343,6 +574,13 @@ async function removeBg(
  * 添加水印到图片
  * @param sharper Sharp实例
  * @param watermarkOptions 水印选项
+ */
+/**
+ * 为图片添加文本水印。
+ *
+ * @param sharper sharp 实例
+ * @param watermarkOptions 水印参数（文本、位置、字号、颜色、透明度）
+ * @param targetSize 可选的目标尺寸（用于计算文本位置），未传则读取元数据
  */
 async function addWatermark(
   sharper: sharp.Sharp,
@@ -405,6 +643,12 @@ async function addWatermark(
   return sharper.composite([{ input: Buffer.from(svgText) }]);
 }
 
+/**
+ * 逃逸 XML 文本中的特殊字符。
+ *
+ * @param unsafe 原始文本
+ * @returns 已转义文本
+ */
 function escapeXml(unsafe: string): string {
   return unsafe
     .replace(/&/g, '&amp;')
