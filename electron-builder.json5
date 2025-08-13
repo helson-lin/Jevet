@@ -8,16 +8,7 @@
     "**/node_modules/png2icons/**/*",
     "**/node_modules/onnxruntime-node/**/*"
   ],
-  "extraResources": [
-    {
-        "from": "node_modules/sharp/",
-        "to": "node_modules/sharp/"
-    },
-    {
-        "from": "node_modules/onnxruntime-node/",
-        "to": "node_modules/onnxruntime-node/"
-    }
-  ],
+  "afterPack": "./scripts/afterPack.js",
   "productName": "Jevet",
   "directories": {
     "output": "release/${version}"

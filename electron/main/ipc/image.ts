@@ -364,11 +364,24 @@ async function removeBg(
       
       // 在 Windows 上尝试手动设置模块路径
       if (process.platform === 'win32') {
-        const possibleModulePaths = [
-          path.join(process.cwd(), 'node_modules/onnxruntime-node'),
-          path.join(__dirname, '../../../node_modules/onnxruntime-node'),
-          path.join(process.resourcesPath || process.cwd(), 'node_modules/onnxruntime-node')
-        ];
+        const isDev = !!process.env.VITE_DEV_SERVER_URL;
+        const possibleModulePaths = [];
+        
+        if (isDev) {
+          // 开发环境路径
+          possibleModulePaths.push(
+            path.join(process.cwd(), 'node_modules/onnxruntime-node'),
+            path.join(__dirname, '../../../node_modules/onnxruntime-node')
+          );
+        } else {
+          // 生产环境路径 - 打包后的 ASAR unpack 路径
+          const resourcesPath = process.resourcesPath;
+          possibleModulePaths.push(
+            path.join(resourcesPath, 'app.asar.unpacked/node_modules/onnxruntime-node'),
+            path.join(resourcesPath, 'node_modules/onnxruntime-node'),
+            path.join(process.cwd(), 'node_modules/onnxruntime-node')
+          );
+        }
         
         let loaded = false;
         for (const modulePath of possibleModulePaths) {

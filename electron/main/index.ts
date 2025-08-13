@@ -22,12 +22,19 @@ if (process.platform === "win32") {
       path.join(__dirname, '../../node_modules/onnxruntime-node/bin/napi-v3/win32/x64/onnxruntime_binding.node')
     );
   } else {
-    // Production paths
+    // Production paths - 打包后的路径
     const appPath = path.dirname(app.getPath('exe'));
+    const resourcesPath = process.resourcesPath;
+    
     possiblePaths.push(
+      // ASAR unpack 路径
+      path.join(resourcesPath, 'app.asar.unpacked/node_modules/onnxruntime-node/bin/napi-v3/win32/x64/onnxruntime_binding.node'),
+      // 备用路径
+      path.join(appPath, 'resources/app.asar.unpacked/node_modules/onnxruntime-node/bin/napi-v3/win32/x64/onnxruntime_binding.node'),
+      path.join(resourcesPath, 'node_modules/onnxruntime-node/bin/napi-v3/win32/x64/onnxruntime_binding.node'),
+      // 兼容旧版本路径
       path.join(appPath, 'onnxruntime_binding.node'),
-      path.join(appPath, 'resources/onnxruntime_binding.node'),
-      path.join(appPath, 'resources/node_modules/onnxruntime-node/bin/napi-v3/win32/x64/onnxruntime_binding.node')
+      path.join(appPath, 'resources/onnxruntime_binding.node')
     );
   }
   
@@ -48,6 +55,23 @@ if (process.platform === "win32") {
     process.env.ORT_BINARY_PATH = path.dirname(nativePath);
   } else {
     console.warn('onnxruntime native module not found in any of the expected paths:', possiblePaths);
+    // 在生产环境中，尝试列出实际存在的目录
+    if (!isDev) {
+      try {
+        const resourcesPath = process.resourcesPath;
+        console.log('Resources path:', resourcesPath);
+        console.log('App path:', path.dirname(app.getPath('exe')));
+        if (fs.existsSync(resourcesPath)) {
+          console.log('Resources contents:', fs.readdirSync(resourcesPath));
+          const unpackedPath = path.join(resourcesPath, 'app.asar.unpacked');
+          if (fs.existsSync(unpackedPath)) {
+            console.log('Unpacked contents:', fs.readdirSync(unpackedPath));
+          }
+        }
+      } catch (e) {
+        console.warn('Error listing directories:', e.message);
+      }
+    }
   }
 }
 
