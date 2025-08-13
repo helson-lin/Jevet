@@ -8,7 +8,6 @@
     "**/node_modules/png2icons/**/*",
     "**/node_modules/onnxruntime-node/**/*"
   ],
-  "afterPack": "./scripts/afterPack.js",
   "productName": "Jevet",
   "directories": {
     "output": "release/${version}"

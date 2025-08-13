@@ -5,7 +5,7 @@ const path = require('path');
  * electron-builder afterPack hook
  * 确保 onnxruntime-node 原生模块在 Windows 打包后能正确工作
  */
-exports.default = async function afterPack(context) {
+module.exports = async function afterPack(context) {
   if (context.electronPlatformName !== 'win32') {
     return; // 只处理 Windows 平台
   }
