@@ -4,7 +4,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import sharp from 'sharp';
 import * as png2icns from 'png2icons';
-import * as ort from 'onnxruntime-node'
+// 延迟加载 onnxruntime-node，避免打包期处理原生绑定
 import { MODEL_OPTION, type ModelOptionItem, getConfig } from './config/index'
 
 interface IMG_ITEM {
@@ -219,7 +219,8 @@ async function removeBg(
     const modelDir = config.data.modelDir;
     const modelDirPath = modelDir || path.join(process.cwd(), 'model');
     const modelPath = path.join(modelDirPath, `${inputOptions.model || 'u2net'}.onnx`);
-    const session = await ort.InferenceSession.create(modelPath);
+    const ort = await import('onnxruntime-node');
+    const session = await (ort as any).InferenceSession.create(modelPath);
     console.log("模型加载完成");
     // 获取模型的名称
     const filename = path.basename(modelPath);
