@@ -156,6 +156,13 @@ onUnmounted(() => {
   min-height: calc(100vh - 140px); /* 减去头部和底部高度 */
 }
 
+.image-wrapper /deep/ .ant-image {
+    background-image: url('../assets/img/3623f49a093c354a.svg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .comparison-wrapper {
