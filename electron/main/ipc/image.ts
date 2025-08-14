@@ -908,7 +908,7 @@ async function removeBg(
     
     // 2. 优化会话选项（Windows特定优化）
     const allowGPU = Boolean(config?.data?.useGPU);
-    const candidateEPs = (process.platform === 'win32' || process.platform === 'linux') && allowGPU
+    const candidateEPs = process.platform === 'linux' && allowGPU
       ? ['cuda', 'cpu']
       : ['cpu'];
     
@@ -1091,15 +1091,22 @@ async function removeBg(
     
     logMemoryUsage(inputOptions.uid, '图像处理前');
     
-    // 图像处理 - 为模型推理准备方形输入（保持长宽比和画质）
-    const imageBuffer = await sharp(inputBuffer)
-      .resize(targetW, targetH, {
-        kernel: sharp.kernel.lanczos3,  // 使用高质量Lanczos3插值算法
-        fit: 'contain',  // 保持长宽比，完全包含在目标尺寸内
-        background: { r: 0, g: 0, b: 0 }  // 黑色填充背景
-      })
-      .removeAlpha()  // 移除 alpha 通道
-      .toColorspace('srgb')
+    // 图像处理 - 为模型推理准备输入
+    // 对于 BRIA/RMBG 系列模型，使用严格尺寸缩放（不留边），以贴合其训练/推理习惯
+    const preSharp = sharp(inputBuffer).removeAlpha();
+    const imageBuffer = await (
+      /rmbg/i.test(filename) || /bria/i.test(options.license || '')
+        ? preSharp.resize(targetW, targetH, {
+            kernel: sharp.kernel.lanczos3,
+            fit: 'contain',
+            background: { r: 0, g: 0, b: 0 }
+          }) // 保持长宽比，避免后续失真
+        : preSharp.resize(targetW, targetH, {
+            kernel: sharp.kernel.lanczos3,
+            fit: 'contain',
+            background: { r: 0, g: 0, b: 0 }
+          })
+    )
       .raw()
       .toBuffer({ resolveWithObject: true });
       
@@ -1151,13 +1158,10 @@ async function removeBg(
     const isBriaModel = /rmbg/i.test(filename) || /bria/i.test(options.license || '');
     const floatArr1 = new Float32Array(width * height * 3);
     if (isBriaModel) {
-      for (let i = 0; i < floatArr.length; i += 3) {
-          floatArr1[i] = (floatArr[i] - 0.485) / 0.229;
-          floatArr1[i + 1] = (floatArr[i + 1] - 0.456) / 0.224;
-          floatArr1[i + 2] = (floatArr[i + 2] - 0.406) / 0.225;
-      }
+      // 与提供的可用实现对齐：rmbg-1.4 不做均值方差归一化，直接使用 0..1 输入
+      floatArr1.set(floatArr);
     } else {
-      // 其他模型沿用 0..1 归一化
+      // 其他模型：保持 0..1 输入（如需均值方差归一化可在此开启）
       floatArr1.set(floatArr);
     }
     
@@ -1181,7 +1185,12 @@ async function removeBg(
     }
 
     // 5. 创建 ONNX 输入
-    const inputNCHW = new (ort as any).Tensor('float32', floatArr2, [1, 3, height, width]);
+    // BRIA/RMBG 系列按你的可用实现对齐为 [1,3,width,height]
+    const inputNCHW = new (ort as any).Tensor('float32', floatArr2,
+      (/rmbg/i.test(filename) || /bria/i.test(options.license || ''))
+        ? [1, 3, width, height]
+        : [1, 3, height, width]
+    );
     const inputNHWC = new (ort as any).Tensor('float32', floatArr, [1, height, width, 3]);
     
     // 根据模型元数据判断输入格式
@@ -1264,36 +1273,50 @@ async function removeBg(
     if (!outTensor) {
       throw new Error('ONNX 推理未返回任何输出张量');
     }
-    // 8. 后处理：在模型尺寸上处理以保证质量
+    // 8. 后处理
     logger.info('RemoveBg', `开始后处理 ${inputOptions.uid}`, { 
       uid: inputOptions.uid,
       modelSize: { width, height },
       originalSize: { width: originalWidth, height: originalHeight }
     });
     logMemoryUsage(inputOptions.uid, '后处理前');
-    
-    // 在模型尺寸上提取掩码（保持最佳质量）
-    const predMaskResized = await extractMaskResized(outTensor, width, height);
-    logger.info('RemoveBg', `掩码提取完成 ${inputOptions.uid}`, { 
-      uid: inputOptions.uid,
-      maskSize: predMaskResized.length,
-      maskDimensions: { width, height }
-    });
-    
-    // 在模型尺寸上进行RGBA合成（使用推理时的图像数据）
-    const isRmbgModel = /bria/i.test(options.license || '');
-    const cutoutBuffer = new Uint8Array(width * height * 4);
-    for (let i = 0; i < width * height; i++) {
-      const alpha = predMaskResized[i];
-      const base = i * 4;
-      const srcBase = i * 3;
-      // rmbg-1.4 使用连续 alpha，保留细节；其他模型使用适中阈值
-      if (isRmbgModel) {
-        cutoutBuffer[base] = data[srcBase] || 0;
-        cutoutBuffer[base + 1] = data[srcBase + 1] || 0;
-        cutoutBuffer[base + 2] = data[srcBase + 2] || 0;
-        cutoutBuffer[base + 3] = alpha; // 连续 alpha
-      } else {
+
+    const isRmbgModel = /(^|-)rmbg-?1\.4/i.test(filename) || /bria/i.test(options.license || '');
+
+    let cutoutBuffer = new Uint8Array(width * height * 4);
+    if (isRmbgModel) {
+      // rmbg-1.4 专用路径：按你的提供函数，直接使用模型输出的概率（不做 min/max 归一化），二值阈值化
+      const outData: Float32Array | number[] = (outTensor as any).data || outTensor;
+      const threshold = 128;
+      for (let i = 0; i < width * height; i++) {
+        const value01 = (outData as any)[i] ?? 0;
+        const value = Math.max(0, Math.min(255, Math.round(value01 * 255)));
+        const idx = i * 4;
+        if (value > threshold) {
+          cutoutBuffer[idx] = data[i * 3] || 0;
+          cutoutBuffer[idx + 1] = data[i * 3 + 1] || 0;
+          cutoutBuffer[idx + 2] = data[i * 3 + 2] || 0;
+          cutoutBuffer[idx + 3] = 255;
+        } else {
+          cutoutBuffer[idx] = 0;
+          cutoutBuffer[idx + 1] = 0;
+          cutoutBuffer[idx + 2] = 0;
+          cutoutBuffer[idx + 3] = 0;
+        }
+      }
+    } else {
+      // 通用路径：提取并归一化掩码，适用其他模型
+      const predMaskResized = await extractMaskResized(outTensor, width, height);
+      logger.info('RemoveBg', `掩码提取完成 ${inputOptions.uid}`, { 
+        uid: inputOptions.uid,
+        maskSize: predMaskResized.length,
+        maskDimensions: { width, height }
+      });
+      cutoutBuffer = new Uint8Array(width * height * 4);
+      for (let i = 0; i < width * height; i++) {
+        const alpha = predMaskResized[i];
+        const base = i * 4;
+        const srcBase = i * 3;
         if (alpha > 127) {
           cutoutBuffer[base] = data[srcBase] || 0;
           cutoutBuffer[base + 1] = data[srcBase + 1] || 0;
@@ -1317,37 +1340,24 @@ async function removeBg(
     
     // 创建Sharp实例用于最终输出
     let finalImage = sharp(cutoutBuffer, { raw: { width: width, height: height, channels: 4 } });
-    
-    // 如果原始尺寸与模型输入尺寸不一致，需要恢复到原始尺寸
+
+    // 恢复到原始尺寸与比例：按 contain 缩放反推有效区域，先裁剪再缩放
     if (originalWidth !== width || originalHeight !== height) {
       logger.info('RemoveBg', `恢复原始尺寸 ${inputOptions.uid}`, { 
         uid: inputOptions.uid,
         fromSize: { width, height },
         toSize: { width: originalWidth, height: originalHeight }
       });
-      
-      // 计算实际的图像区域在模型输出中的位置和大小
-      const scaleX = width / originalWidth;
-      const scaleY = height / originalHeight;
-      const scale = Math.min(scaleX, scaleY);
+      const scale = Math.min(width / originalWidth, height / originalHeight);
       const scaledWidth = Math.round(originalWidth * scale);
       const scaledHeight = Math.round(originalHeight * scale);
-      const offsetX = Math.round((width - scaledWidth) / 2);
-      const offsetY = Math.round((height - scaledHeight) / 2);
-      
-      logger.debug('RemoveBg', `尺寸恢复参数 ${inputOptions.uid}`, {
-        uid: inputOptions.uid,
-        scale,
-        scaledSize: { width: scaledWidth, height: scaledHeight },
-        offset: { x: offsetX, y: offsetY }
-      });
-      
-      // 先裁剪出有效区域，再resize到原始尺寸
+      const offsetX = Math.max(0, Math.round((width - scaledWidth) / 2));
+      const offsetY = Math.max(0, Math.round((height - scaledHeight) / 2));
       finalImage = finalImage
         .extract({ left: offsetX, top: offsetY, width: scaledWidth, height: scaledHeight })
         .resize(originalWidth, originalHeight, { 
-          kernel: sharp.kernel.lanczos3, // 使用高质量插值
-          fit: 'fill' // 填充到目标尺寸
+          kernel: sharp.kernel.lanczos3,
+          fit: 'fill'
         });
     }
     
