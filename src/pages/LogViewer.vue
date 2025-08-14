@@ -4,7 +4,7 @@
     <div class="bg-white dark:bg-zinc-800 rounded-lg p-4 mb-4 shadow-sm border border-zinc-200 dark:border-zinc-700">
       <div class="flex justify-between items-center mb-4">
         <h1 class="text-xl font-semibold text-zinc-800 dark:text-zinc-200">
-          📋 {{ $t('logs.title') }}
+          {{ $t('logs.title') }}
         </h1>
         <div class="flex gap-2">
           <a-select 
@@ -70,21 +70,21 @@
       <!-- 日志统计 -->
       <div class="grid grid-cols-4 gap-4">
         <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-          <div class="text-sm text-blue-600 dark:text-blue-400">总日志数</div>
+          <div class="text-sm text-blue-600 dark:text-blue-400">{{ $t('logs.totalLogs') }}</div>
           <div class="text-lg font-semibold text-blue-700 dark:text-blue-300">{{ stats.total }}</div>
         </div>
         <div class="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg border border-yellow-200 dark:border-yellow-800">
-          <div class="text-sm text-yellow-600 dark:text-yellow-400">警告</div>
+          <div class="text-sm text-yellow-600 dark:text-yellow-400">{{ $t('logs.warnings') }}</div>
           <div class="text-lg font-semibold text-yellow-700 dark:text-yellow-300">{{ stats.warn }}</div>
         </div>
         <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
-          <div class="text-sm text-red-600 dark:text-red-400">错误</div>
+          <div class="text-sm text-red-600 dark:text-red-400">{{ $t('logs.errors') }}</div>
           <div class="text-lg font-semibold text-red-700 dark:text-red-300">{{ stats.error }}</div>
         </div>
         <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
-          <div class="text-sm text-green-600 dark:text-green-400">日志目录</div>
-          <div class="text-xs font-mono text-green-700 dark:text-green-300 truncate" :title="logDirectory || '未获取'">
-            {{ logDirectory || (isElectronAPIAvailable ? '加载中...' : 'API不可用') }}
+          <div class="text-sm text-green-600 dark:text-green-400">{{ $t('logs.logDirectory') }}</div>
+          <div class="text-xs font-mono text-green-700 dark:text-green-300 truncate" :title="logDirectory || $t('logs.notGet')">
+            {{ logDirectory || (isElectronAPIAvailable ? $t('logs.loading') : $t('logs.apiUnavailable')) }}
           </div>
         </div>
       </div>
@@ -100,8 +100,8 @@
           </span>
           <a-switch 
             v-model:checked="autoRefresh" 
-            checked-children="自动刷新" 
-            un-checked-children="手动刷新"
+            :checked-children="$t('logs.autoRefresh')" 
+            :un-checked-children="$t('logs.manualRefresh')"
             @change="handleAutoRefreshChange"
           />
         </div>
@@ -109,13 +109,13 @@
         <!-- 日志列表 -->
         <div class="flex-1 overflow-auto">
           <div v-if="loading" class="flex justify-center items-center h-32">
-            <a-spin size="large" tip="加载日志中..." />
+            <a-spin size="large" :tip="$t('logs.loadingLogs')" />
           </div>
           
           <div v-else-if="filteredLogs.length === 0" class="flex justify-center items-center h-32 text-zinc-500 dark:text-zinc-400">
             <div class="text-center">
               <div class="text-4xl mb-2">📋</div>
-              <div class="text-sm">暂无日志数据</div>
+              <div class="text-sm">{{ $t('logs.noData') }}</div>
             </div>
           </div>
           
@@ -154,7 +154,7 @@
                        class="text-xs text-red-600 dark:text-red-400 mt-2 font-mono">
                     <details class="bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-200 dark:border-red-800">
                       <summary class="cursor-pointer hover:text-red-700 dark:hover:text-red-300 font-medium mb-1">
-                        🔍 堆栈信息
+                        🔍 {{ $t('logs.stackTrace') }}
                       </summary>
                       <pre class="mt-2 whitespace-pre-wrap text-red-700 dark:text-red-300 text-xs">{{ log.stack }}</pre>
                     </details>

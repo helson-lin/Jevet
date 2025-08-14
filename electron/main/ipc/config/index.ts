@@ -31,24 +31,6 @@ export interface AppOptions {
 
 // 支持的模型配置信息
 export const MODEL_OPTION: ModelOption = {
-    'rmbg-1.4.onnx': {
-        width: 1024,
-        height: 1024,
-        size: '176MB',
-        license: 'bria-rmbg-1.4',
-        homepage: 'https://github.com/danielgatis/rembg',
-        md5: '8bb9b16ff49cda31e7784852873cfd0d', 
-        feedInput: 'input'
-    },
-    'bria-rmbg-2.0.onnx': {
-        width: 1024,
-        height: 1024,
-        size: '1.03GB',
-        license: 'bria-rmbg-1.4',
-        homepage: 'https://github.com/danielgatis/rembg',
-        md5: '55913f5ac5540eb64a069204a8bee870', 
-        feedInput: 'input'
-    },
     'u2net.onnx': {
         width: 320,
         height: 320,
@@ -76,15 +58,6 @@ export const MODEL_OPTION: ModelOption = {
         md5: '55e59e0d8062d2f5d013f4725ee84782',
         feedInput: 'input.1'
     },
-    'BEN2_Base.onnx': {
-        width: 1024,
-        height: 1024,
-        size: '222.9MB',
-        license: 'MIT',
-        homepage: 'https://github.com/PramaLLC/BEN2/',
-        md5: 'a12dafe4080f53e8818726b298bd90bc',
-        feedInput: 'input.1'
-    },
     'isnet-general-use.onnx': {
         width: 1024,
         height: 1024,
@@ -93,7 +66,25 @@ export const MODEL_OPTION: ModelOption = {
         homepage: 'https://github.com/danielgatis/rembg',
         md5: '80bb0d6616a2085b2f264913e01fafa2',
         feedInput: 'input_image'
-    }
+    },
+    'rmbg-1.4.onnx': {
+        width: 1024,
+        height: 1024,
+        size: '176MB',
+        license: 'bria-rmbg-1.4',
+        homepage: 'https://github.com/danielgatis/rembg',
+        md5: '8bb9b16ff49cda31e7784852873cfd0d', 
+        feedInput: 'input'
+    },
+    'bria-rmbg-2.0.onnx': {
+        width: 1024,
+        height: 1024,
+        size: '1.03GB',
+        license: 'bria-rmbg-1.4',
+        homepage: 'https://github.com/danielgatis/rembg',
+        md5: '55913f5ac5540eb64a069204a8bee870', 
+        feedInput: 'input'
+    },
 }
 
 // 初始化配置文件

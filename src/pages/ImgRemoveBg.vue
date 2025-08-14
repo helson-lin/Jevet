@@ -5,6 +5,14 @@ interface SHARP_RESULT {
   preview: string;
   fileSize: number;
   uid: string;
+  processTime?: number;
+  // GPU/CUDA 状态信息
+  executionProviders?: {
+    requested: string[];
+    actual: string[];
+    usingCuda: boolean;
+    cudaDiagnostic?: any;
+  };
 }
 
 interface PROCESED_ITEM {
@@ -138,7 +146,17 @@ const options = ref<{
 
 watchEffect(() => {
   if (supportedModels.value.length > 0) {
-    options.value.model = supportedModels.value[0];
+    // 优先选择高分辨率模型，其次 u2net
+    const preferOrder = [
+      'bria-rmbg-2.0',
+      'rmbg-1.4',
+      'isnet-general-use',
+      'u2net_human_seg',
+      'silueta',
+      'u2net'
+    ];
+    const pick = preferOrder.find(m => supportedModels.value.includes(m)) || supportedModels.value[0];
+    options.value.model = pick;
   }
 })
 
@@ -149,7 +167,7 @@ const supportedFormat = [
   "webp"
 ];
 
-const showQuality = computed(() => true);
+const showQuality = computed(() => options.value.outputformat !== 'png');
 
 // 删除图片
 const deleteImg = (item: PROCESED_ITEM) => {
@@ -310,13 +328,59 @@ const processIMG = async () => {
           success: boolean;
           results: SHARP_RESULT[];
           error?: string;
+          message?: string;
+          statistics?: {
+            totalImages: number;
+            successCount: number;
+            failedCount: number;
+            totalTime: number;
+            avgTimePerImage: number;
+            cudaUsedCount: number;
+            cpuUsedCount: number;
+            processedCount?: number;
+            errorTime?: number;
+          };
         }) => {
           console.log("✅", data);
           loading.value = false;
           if (data.success && data.results) {
             processImgs.value = data.results;
+            
+            // 显示处理统计信息
+            if (data.statistics) {
+              const stats = data.statistics;
+              const totalTimeSeconds = (stats.totalTime / 1000).toFixed(1);
+              const avgTimeSeconds = (stats.avgTimePerImage / 1000).toFixed(1);
+              
+              let statusMessage = `✨ 处理完成！`;
+              statusMessage += `\n📊 统计：${stats.successCount}张成功`;
+              if (stats.failedCount > 0) {
+                statusMessage += `，${stats.failedCount}张失败`;
+              }
+              statusMessage += `\n⏱️ 用时：总计${totalTimeSeconds}秒，平均${avgTimeSeconds}秒/张`;
+              
+              if (stats.cudaUsedCount > 0) {
+                statusMessage += `\n⚡ ${stats.cudaUsedCount}张使用GPU加速`;
+                if (stats.cpuUsedCount > 0) {
+                  statusMessage += `，${stats.cpuUsedCount}张使用CPU`;
+                }
+              } else if (stats.cpuUsedCount > 0) {
+                statusMessage += `\n🖥️ 全部使用CPU处理`;
+              }
+              
+              message.success(statusMessage, 4);
+            } else if (data.message) {
+              message.success(data.message);
+            }
           } else {
-            if (data.error) message.warning(data.error);
+            if (data.error) {
+              message.warning(data.error);
+              // 如果有统计信息，也显示部分成功的情况
+              if (data.statistics && data.statistics.processedCount && data.statistics.processedCount > 0) {
+                const errorTimeSeconds = data.statistics.errorTime ? (data.statistics.errorTime / 1000).toFixed(1) : '0';
+                message.info(`部分处理完成：${data.statistics.processedCount}张，耗时${errorTimeSeconds}秒`);
+              }
+            }
           }
         }
       )
@@ -332,6 +396,15 @@ const processIMG = async () => {
 
 const handleChange = (value: string) => {
   // No special handling needed for background removal
+};
+
+// 获取单张图片的处理时间
+const getProcessTime = (uid: string) => {
+  const result = processImgs.value.find(r => r.uid === uid);
+  if (result && result.processTime) {
+    return `${(result.processTime / 1000).toFixed(1)}s`;
+  }
+  return '';
 };
 </script>
 
@@ -396,16 +469,22 @@ const handleChange = (value: string) => {
                       </span>
                     </div>
                   </div>
-                  <a-tag v-if="ii.status === 1" color="success" size="small">
-                    {{ t('removeBg.processed') }}
-                  </a-tag>
+                  <div v-if="ii.status === 1" class="flex flex-col items-end gap-1">
+                    <a-tag color="success" size="small">
+                      {{ t('removeBg.processed') }}
+                    </a-tag>
+                    <!-- 显示处理时间 -->
+                    <span v-if="getProcessTime(ii.uid)" class="text-xs text-gray-500 dark:text-gray-400">
+                      ⏱️ {{ getProcessTime(ii.uid) }}
+                    </span>
+                  </div>
                 </div>
               </div>
               
               <!-- 图片预览区域 -->
               <div class="img-box relative flex-1 bg-zinc-100 dark:bg-zinc-700 min-h-0">
                 <a-image 
-                  class="w-full h-full object-cover" 
+                  class="w-full h-full" 
                   :preview="{ visible: false }" 
                   :src="ii.preview" 
                   alt="image">
@@ -561,6 +640,10 @@ const handleChange = (value: string) => {
 .img-box >>> .ant-image {
   width: 100%;
   height: 100%;
+}
+
+.img-box >>> .ant-image-img {
+  object-fit: contain !important;
 }
 
 .img-item {

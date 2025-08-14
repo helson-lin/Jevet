@@ -28,8 +28,8 @@ export default {
     inference: '推理配置',
     useGPU: '使用GPU加速（需要CUDA）',
     graphOptimizationLevel: '图优化等级',
-    inferenceTips: 'Windows/Linux 可使用 CUDA 加速；macOS 使用 CPU。更高优化等级可能更快，但也可能引入不稳定。',
-    modelNotice: '1. rmbg-1.4: 模型效果最好，物体、动物、人像的支持都比较均衡<br/>2. bria-rmbg-2.0: rmbg1.4 升级版本但是内存占用高<br/> 3. u2net: 面向通用场景的预训练模型<br/>4. u2net_human_seg: 用于人体分割的预训练模型<br/>5. silueta:与u2net相同，但体积缩减至43MB<br/>6. isnet-general-use:面向通用场景的新预训练模型',
+    inferenceTips: 'Linux 可使用 CUDA 加速；macOS、Windows 使用 CPU。更高优化等级可能更快，但也可能引入不稳定。',
+    modelNotice: '1. rmbg-1.4: 模型效果最好，物体、动物、人像的支持都比较均衡<br/>2. bria-rmbg-2.0: rmbg1.4 升级版本效果很好但是内存占用高<br/> 3. u2net: 面向通用场景的预训练模型<br/>4. u2net_human_seg: 用于人体分割的预训练模型<br/>5. silueta:与u2net相同，但体积缩减至43MB<br/>6. isnet-general-use:面向通用场景的新预训练模型',
     refresh: '刷新',
     refreshSuccess: '刷新成功',
     download: '下载',
@@ -162,7 +162,7 @@ export default {
   },
   upload: {
     imageOnly: '只能上传图片文件！',
-    sizeLimitError: '图片必须小于100MB！',
+    sizeLimitError: '图片必须小于30MB！',
     formatNotAllowed: '不支持上传 ICNS、ICO 和 HEIC 格式文件！',
     dragText: '拖拽文件到这里或者点击上传'
   },

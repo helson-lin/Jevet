@@ -38,7 +38,7 @@ const beforeUpload = (file: any) => {
     message.error(t('upload.imageOnly'));
     return false;
   }
-  const isLt2M = file.size / 1024 / 1024 < 100;
+  const isLt2M = file.size / 1024 / 1024 < 30;
   if (!isLt2M) {
     message.error(t('upload.sizeLimitError'));
     return false;

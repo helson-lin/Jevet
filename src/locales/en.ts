@@ -163,7 +163,7 @@ export default {
   },
   upload: {
     imageOnly: 'You can only upload image files!',
-    sizeLimitError: 'Image must be smaller than 100MB!',
+    sizeLimitError: 'Image must be smaller than 30MB!',
     formatNotAllowed: 'ICNS, ICO, and HEIC files are not allowed!',
     dragText: 'Click or drag files to upload'
   },

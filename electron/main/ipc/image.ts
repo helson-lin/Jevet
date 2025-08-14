@@ -200,6 +200,9 @@ export function setupImageHandlers() {
     quality: number,
     outputformat: string,
   }}) => {
+    const startTime = Date.now();
+    let results: any[] = [];
+    
     logger.info('ImageRemoveBg', '开始抠图处理', { 
       imageCount: arg.imgs?.length || 0,
       model: arg.options?.model,
@@ -208,26 +211,141 @@ export function setupImageHandlers() {
     
     try {
       const imgs = arg.imgs;
-      const processingPromises = imgs.map(async (imgItem) => await removeBg(imgItem.buffer as any, { outputformat: arg.options?.outputformat, model: arg.options?.model, uid: imgItem.uid }))
-      const results = await Promise.all(processingPromises);
+      
+      // 分批处理配置 - 避免内存占用过大
+      const BATCH_SIZE = 3; // 同时处理3张图片
+      const batches = [];
+      
+      for (let i = 0; i < imgs.length; i += BATCH_SIZE) {
+        batches.push(imgs.slice(i, i + BATCH_SIZE));
+      }
+      
+      logger.info('ImageRemoveBg', '分批处理配置', { 
+        totalImages: imgs.length,
+        batchSize: BATCH_SIZE,
+        totalBatches: batches.length
+      });
+      
+      // 逐批处理图片
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        const batchStartTime = Date.now();
+        
+        logger.info('ImageRemoveBg', `开始处理第${batchIndex + 1}批`, {
+          batchIndex: batchIndex + 1,
+          totalBatches: batches.length,
+          batchSize: batch.length,
+          progress: `${batchIndex + 1}/${batches.length}`
+        });
+        
+        // 并行处理当前批次的图片
+        const batchPromises = batch.map(async (imgItem) => {
+          try {
+            return await removeBg(imgItem.buffer as any, {
+              outputformat: arg.options?.outputformat, 
+              model: arg.options?.model, 
+              uid: imgItem.uid
+            });
+          } catch (error) {
+            logger.error('ImageRemoveBg', `单张图片处理失败 ${imgItem.uid}`, {
+              uid: imgItem.uid,
+              error: error.message
+            }, error);
+            throw error;
+          }
+        });
+        
+        const batchResults = await Promise.all(batchPromises);
+        results.push(...batchResults);
+        
+        const batchTime = Date.now() - batchStartTime;
+        logger.info('ImageRemoveBg', `第${batchIndex + 1}批处理完成`, {
+          batchIndex: batchIndex + 1,
+          batchSize: batch.length,
+          batchTime,
+          totalCompleted: results.length,
+          totalImages: imgs.length,
+          progress: `${results.length}/${imgs.length}`,
+          avgTimePerImage: Math.round(batchTime / batch.length)
+        });
+        
+        // 强制垃圾回收（如果可用）
+        if (global.gc && process.platform === 'win32') {
+          global.gc();
+          logger.debug('ImageRemoveBg', `批次${batchIndex + 1}后执行垃圾回收`);
+        }
+        
+        // 添加小延迟，让其他操作有机会执行
+        if (batchIndex < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      }
 
+      const totalTime = Date.now() - startTime;
+      const successCount = results.filter(r => r.base64Image).length;
+      const avgTimePerImage = Math.round(totalTime / results.length);
+      
+      // 计算CUDA使用统计
+      const cudaUsedCount = results.filter(r => r.executionProviders?.usingCuda).length;
+      const cpuUsedCount = results.filter(r => r.executionProviders && !r.executionProviders.usingCuda).length;
+      
       logger.info('ImageRemoveBg', '抠图处理完成', { 
+        totalImages: imgs.length,
         processedCount: results.length,
-        successCount: results.filter(r => r.base64Image).length
+        successCount,
+        failedCount: results.length - successCount,
+        totalTime,
+        avgTimePerImage,
+        batchSize: BATCH_SIZE,
+        totalBatches: batches.length,
+        cudaUsedCount,
+        cpuUsedCount,
+        performance: {
+          totalTimeSeconds: (totalTime / 1000).toFixed(2),
+          avgTimePerImageSeconds: (avgTimePerImage / 1000).toFixed(2),
+          imagesPerSecond: (results.length / (totalTime / 1000)).toFixed(2)
+        }
       });
 
       return {
         success: true,
         results,
-        message: `成功并行处理了${results.length}张图片`,
+        message: `成功处理了${successCount}张图片 (总用时: ${(totalTime/1000).toFixed(1)}秒, 平均: ${(avgTimePerImage/1000).toFixed(1)}秒/张)`,
+        statistics: {
+          totalImages: imgs.length,
+          successCount,
+          failedCount: results.length - successCount,
+          totalTime,
+          avgTimePerImage,
+          cudaUsedCount,
+          cpuUsedCount
+        }
       };
     } catch (e) {
+      const errorTime = Date.now() - startTime;
+      const processedCount = results?.length || 0;
       logger.error('ImageRemoveBg', '抠图处理失败', { 
         imageCount: arg.imgs?.length || 0,
         model: arg.options?.model,
-        error: e.message 
+        error: e.message,
+        errorTime,
+        processedCount
       }, e);
-      return { success: false, error: e.message };
+      return { 
+        success: false, 
+        error: e.message,
+        statistics: {
+          totalImages: arg.imgs?.length || 0,
+          successCount: 0,
+          failedCount: arg.imgs?.length || 0,
+          totalTime: errorTime,
+          avgTimePerImage: 0,
+          cudaUsedCount: 0,
+          cpuUsedCount: 0,
+          processedCount,
+          errorTime
+        }
+      };
     }
   });
 
@@ -393,15 +511,32 @@ async function extractMaskResized(outTensor: any, width: number, height: number)
 async function processOutputFormat(sharper: sharp.Sharp, format: string, baseOptions: { quality: number }) {
   switch (format) {
     case "png":
-      return sharper.png({ ...baseOptions, effort: 6, palette: true });
+      return sharper.png({ 
+        compressionLevel: 6, // PNG压缩级别 (0-9, 6是平衡点)
+        quality: 100,        // PNG质量设置
+        effort: 6,           // 压缩效率
+        palette: false       // 禁用调色板以保持最佳质量
+      });
     case "webp":
-      return sharper.webp({ effort: 6, ...baseOptions });
+      return sharper.webp({ 
+        effort: 6, 
+        quality: baseOptions.quality,
+        lossless: baseOptions.quality === 100, // 如果质量100则使用无损
+        nearLossless: baseOptions.quality >= 90 // 高质量时使用近无损
+      });
     case "jpeg":
-      return sharper.jpeg(baseOptions);
+      return sharper.jpeg({ 
+        quality: baseOptions.quality,
+        progressive: true,    // 渐进式JPEG
+        mozjpeg: true        // 使用mozjpeg优化器
+      });
     case "jp2":
       return sharper.jp2(baseOptions);
     case "tiff":
-      return sharper.tiff(baseOptions);
+      return sharper.tiff({ 
+        quality: baseOptions.quality, 
+        compression: 'lzw'   // 使用无损LZW压缩而不是有损JPEG
+      });
     case "gif":
       return sharper.gif({ effort: 6 });
     case "heif":
@@ -413,6 +548,7 @@ async function processOutputFormat(sharper: sharp.Sharp, format: string, baseOpt
         height: 1024,
         fit: 'contain',
         background: { r: 0, g: 0, b: 0, alpha: 0 },
+        kernel: sharp.kernel.lanczos3  // 高质量插值
       }).composite([
         {
           input: Buffer.from(
@@ -932,10 +1068,11 @@ async function removeBg(
       originalPixels: originalWidth * originalHeight
     });
     
-    // 模型需要的方形尺寸（保持原逻辑）
-    const modelRequiredSize = filename.toLowerCase().includes('ben2') ? 1024 : 320;
-    let targetW = options.width && options.width > 0 ? options.width : modelRequiredSize;
-    let targetH = options.height && options.height > 0 ? options.height : modelRequiredSize;
+    // 模型需要的方形尺寸：优先用模型元数据/配置，避免错误回退到 320
+    const modelRequiredW = options.width && options.width > 0 ? options.width :  (options.width || 1024);
+    const modelRequiredH = options.height && options.height > 0 ? options.height : (options.height || 1024);
+    let targetW = modelRequiredW;
+    let targetH = modelRequiredH;
     
     // 如果设置了自定义尺寸但超出内存限制，进行优化
     const maxPixels = process.platform === 'win32' ? 1024 * 1024 : 2048 * 2048;
@@ -946,7 +1083,7 @@ async function removeBg(
       
       logger.warn('RemoveBg', `模型输入尺寸过大，已压缩 ${inputOptions.uid}`, {
         uid: inputOptions.uid,
-        original: { width: options.width || modelRequiredSize, height: options.height || modelRequiredSize },
+        original: { width: options.width || modelRequiredW, height: options.height || modelRequiredH },
         compressed: { width: targetW, height: targetH },
         platform: process.platform
       });
@@ -954,9 +1091,13 @@ async function removeBg(
     
     logMemoryUsage(inputOptions.uid, '图像处理前');
     
-    // 图像处理 - 为模型推理准备方形输入（保持长宽比）
+    // 图像处理 - 为模型推理准备方形输入（保持长宽比和画质）
     const imageBuffer = await sharp(inputBuffer)
-      .resize(targetW, targetH)
+      .resize(targetW, targetH, {
+        kernel: sharp.kernel.lanczos3,  // 使用高质量Lanczos3插值算法
+        fit: 'contain',  // 保持长宽比，完全包含在目标尺寸内
+        background: { r: 0, g: 0, b: 0 }  // 黑色填充背景
+      })
       .removeAlpha()  // 移除 alpha 通道
       .toColorspace('srgb')
       .raw()
@@ -1140,21 +1281,30 @@ async function removeBg(
     });
     
     // 在模型尺寸上进行RGBA合成（使用推理时的图像数据）
+    const isRmbgModel = /bria/i.test(options.license || '');
     const cutoutBuffer = new Uint8Array(width * height * 4);
     for (let i = 0; i < width * height; i++) {
       const alpha = predMaskResized[i];
       const base = i * 4;
       const srcBase = i * 3;
-      if (alpha > 127) {
+      // rmbg-1.4 使用连续 alpha，保留细节；其他模型使用适中阈值
+      if (isRmbgModel) {
         cutoutBuffer[base] = data[srcBase] || 0;
         cutoutBuffer[base + 1] = data[srcBase + 1] || 0;
         cutoutBuffer[base + 2] = data[srcBase + 2] || 0;
-        cutoutBuffer[base + 3] = 255;
+        cutoutBuffer[base + 3] = alpha; // 连续 alpha
       } else {
-        cutoutBuffer[base] = 0;
-        cutoutBuffer[base + 1] = 0;
-        cutoutBuffer[base + 2] = 0;
-        cutoutBuffer[base + 3] = 0;
+        if (alpha > 127) {
+          cutoutBuffer[base] = data[srcBase] || 0;
+          cutoutBuffer[base + 1] = data[srcBase + 1] || 0;
+          cutoutBuffer[base + 2] = data[srcBase + 2] || 0;
+          cutoutBuffer[base + 3] = 255;
+        } else {
+          cutoutBuffer[base] = 0;
+          cutoutBuffer[base + 1] = 0;
+          cutoutBuffer[base + 2] = 0;
+          cutoutBuffer[base + 3] = 0;
+        }
       }
     }
     //  // 8. 保存结果为图片
@@ -1164,10 +1314,66 @@ async function removeBg(
       
     // console.log(`Image saved to ${outputPath}`);
     console.log('保存抠图结果')
-    // 保存抠图结果
-    await sharp(cutoutBuffer, { raw: { width: width, height: height, channels: 4 } })
-        .png()
-      .toFile(outputPath);
+    
+    // 创建Sharp实例用于最终输出
+    let finalImage = sharp(cutoutBuffer, { raw: { width: width, height: height, channels: 4 } });
+    
+    // 如果原始尺寸与模型输入尺寸不一致，需要恢复到原始尺寸
+    if (originalWidth !== width || originalHeight !== height) {
+      logger.info('RemoveBg', `恢复原始尺寸 ${inputOptions.uid}`, { 
+        uid: inputOptions.uid,
+        fromSize: { width, height },
+        toSize: { width: originalWidth, height: originalHeight }
+      });
+      
+      // 计算实际的图像区域在模型输出中的位置和大小
+      const scaleX = width / originalWidth;
+      const scaleY = height / originalHeight;
+      const scale = Math.min(scaleX, scaleY);
+      const scaledWidth = Math.round(originalWidth * scale);
+      const scaledHeight = Math.round(originalHeight * scale);
+      const offsetX = Math.round((width - scaledWidth) / 2);
+      const offsetY = Math.round((height - scaledHeight) / 2);
+      
+      logger.debug('RemoveBg', `尺寸恢复参数 ${inputOptions.uid}`, {
+        uid: inputOptions.uid,
+        scale,
+        scaledSize: { width: scaledWidth, height: scaledHeight },
+        offset: { x: offsetX, y: offsetY }
+      });
+      
+      // 先裁剪出有效区域，再resize到原始尺寸
+      finalImage = finalImage
+        .extract({ left: offsetX, top: offsetY, width: scaledWidth, height: scaledHeight })
+        .resize(originalWidth, originalHeight, { 
+          kernel: sharp.kernel.lanczos3, // 使用高质量插值
+          fit: 'fill' // 填充到目标尺寸
+        });
+    }
+    
+    // 根据输出格式保存文件
+    const outputFormat = inputOptions.outputformat || 'png';
+    
+    if (outputFormat === 'png') {
+      // PNG格式 - 支持透明背景，适合抠图
+      await finalImage
+        .png({ 
+          compressionLevel: 6,
+          quality: 100,
+          effort: 6
+        })
+        .toFile(outputPath);
+    } else {
+      // 非 PNG：仅在目标格式不支持透明时才填充背景
+      const supportsAlpha = ['webp', 'tiff', 'heif', 'gif', 'jp2'].includes(outputFormat);
+      const forProcess = supportsAlpha ? finalImage : finalImage.flatten({ background: { r: 255, g: 255, b: 255 } });
+      const processedFormat = await processOutputFormat(
+        forProcess,
+        outputFormat, 
+        { quality: 95 }
+      );
+      await processedFormat.toFile(outputPath);
+    }
     
     logMemoryUsage(inputOptions.uid, '保存完成');
 
@@ -1188,7 +1394,7 @@ async function removeBg(
     });
     
     // 读取结果文件
-    const outPngBuffer = fs.readFileSync(outputPath);
+    const outBuffer = fs.readFileSync(outputPath);
     
     // Windows特定的内存清理
     if (process.platform === 'win32') {
@@ -1209,11 +1415,13 @@ async function removeBg(
     
     logMemoryUsage(inputOptions.uid, '任务完成');
     
+    // 返回与实际格式匹配的 base64 MIME
+    const mime = outputFormat === 'jpg' ? 'jpeg' : outputFormat;
     return {
       uid: inputOptions.uid,
       outputPath,
       fileSize: fileSizeInBytes,
-      base64Image: `data:image/png;base64,${outPngBuffer.toString('base64')}`,
+      base64Image: `data:image/${mime};base64,${outBuffer.toString('base64')}`,
       processTime,
       originalSize: { width: originalWidth, height: originalHeight },
       modelInputSize: { width, height },
