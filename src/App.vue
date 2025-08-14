@@ -80,6 +80,11 @@ const openSetting = () => {
   router.push({ path: '/setting' })
 }
 
+// 打开日志查看器
+const openLogs = () => {
+  router.push({ path: '/logs' })
+}
+
 const jumpHome = () => router.push({ path: '/' })
 </script>
 

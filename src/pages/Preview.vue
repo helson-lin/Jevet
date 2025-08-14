@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ArrowRight, Close } from '@icon-park/vue-next'
 import Icon from '../components/Icon.vue'
 import { useRoute } from 'vue-router'
-const route = useRoute();
-const previewURL =  computed(() => {
+
+const { t } = useI18n()
+const route = useRoute()
+const imageLoading = ref(true)
+
+const previewURL = computed(() => {
     const url: any = route.query.url
-    if (url.startsWith('blob')) {
+    if (url?.startsWith('blob:')) {
         return url;
     } else {
         return `file://${url}`
@@ -17,48 +23,167 @@ const outputURL = computed(() => {
     return `file://${url}`
 })
 
-const previewList = ref<string[]>([])
-
-// 监听 close 按钮的点击
-function listen () {
-    const antClose = document.querySelector('.anticon-close')
-    antClose && antClose.addEventListener('click', () => {
-        // 关闭当前窗口
-        window.ipcRenderer.invoke('close-win');
-    })
+// 图片加载完成处理
+const onImageLoad = () => {
+    imageLoading.value = false
 }
-// 设置显示隐藏
-const setVisible = () => {}
+
+// 关闭窗口
+const closeWindow = () => {
+    window.ipcRenderer.invoke('close-win')
+}
+
+// 监听键盘事件
+const handleKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+        closeWindow()
+    }
+}
+
+onMounted(() => {
+    // 添加键盘监听
+    window.addEventListener('keydown', handleKeydown)
+    // 图片预加载
+    setTimeout(() => {
+        imageLoading.value = false
+    }, 1000)
+})
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeydown)
+})
 </script>
+
 <template>
-    <div class="w-full h-full flex items-center dark:bg-zinc-800">
-        <div class="w-1/2 py-4 px-4 flex flex-col items-start justify-center  ">
-            <div class="preview-img w-full h-full backdrop-blur-xl bg-white/[0.2] flex items-center justify-center">
-                <a-image 
-                :src="previewURL"
-                :width="300"
-                fallback="data:image/png;base64,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"
-                ></a-image>
-            </div>
-        </div>
-        <div class="flex flex-col w-22 items-center">
-            <label class="py-2 text-base font-bold dark:text-zinc-300">原始图片</label>
-            <Icon name="TransferData" fill="#00D86A" size="25"/>
-            <label class="py-2 text-base font-bold dark:text-zinc-300">处理图片</label>
-        </div>
-        <div class="w-1/2 py-4 px-4 flex  flex-col items-start justify-center  ">
-            <div class="preview-img w-full h-full backdrop-blur-xl bg-white/[0.2] flex items-center justify-center">
-                <a-image 
-                :src="outputURL" 
-                :width="300"
-                fallback="data:image/png;base64,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"
-                ></a-image>
-            </div>
-        </div>
+  <div class="preview-container w-full h-full bg-white dark:bg-zinc-900">
+    <!-- 头部标题栏 -->
+    <div class="header-bar flex items-center justify-between px-6 py-4 bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700">
+      <h1 class="text-lg font-medium text-gray-700 dark:text-zinc-300">
+        {{ t('preview.comparison') }}
+      </h1>
+      <div class="flex items-center space-x-2">
+        <a-button 
+          type="text" 
+          shape="circle" 
+          @click="closeWindow"
+          class="hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors duration-200"
+        >
+          <template #icon>
+            <close theme="outline" size="16" fill="currentColor" />
+          </template>
+        </a-button>
+      </div>
     </div>
+
+    <!-- 主要内容区域 -->
+    <div class="content-area flex items-center justify-center px-8 py-6">
+      <!-- 加载状态 -->
+      <div v-if="imageLoading" class="flex flex-col items-center justify-center space-y-4">
+        <a-spin size="large" />
+        <p class="text-gray-600 dark:text-zinc-400">{{ t('preview.loading') }}</p>
+      </div>
+
+      <!-- 图片对比区域 -->
+      <div v-else class="comparison-wrapper flex items-center justify-center w-full max-w-5xl mx-auto">
+        <!-- 原始图片 -->
+        <div class="image-section flex-1 max-w-lg">
+          <div class="image-container relative bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-4 transition-all duration-200 hover:border-gray-300 dark:hover:border-zinc-600">
+            <div class="image-wrapper relative overflow-hidden rounded">
+              <a-image 
+                :src="previewURL"
+                class="w-full h-auto max-h-80 object-contain"
+                :preview="{ mask: false }"
+                @load="onImageLoad"
+                fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f5f5f5'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='%23999' font-family='Arial, sans-serif' font-size='14'%3E图片加载失败%3C/text%3E%3C/svg%3E"
+              />
+              <!-- 图片标签 -->
+              <div class="image-label absolute top-2 left-2 bg-gray-600 dark:bg-zinc-600 text-white px-2 py-1 rounded text-xs font-medium">
+                {{ t('preview.originalImage') }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 中间箭头区域 -->
+        <div class="arrow-section flex flex-col items-center justify-center mx-4">
+          <div class="flex items-center space-x-2">
+            <div class="w-8 h-px bg-gray-300 dark:bg-zinc-600"></div>
+            <div class="arrow-wrapper flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded">
+              <arrow-right theme="filled" size="14" fill="#00b96b" />
+            </div>
+            <div class="w-8 h-px bg-gray-300 dark:bg-zinc-600"></div>
+          </div>
+          <p class="mt-2 text-xs text-gray-600 dark:text-zinc-400 text-center">
+            {{ t('preview.processedImage') }}
+          </p>
+        </div>
+
+        <!-- 处理结果图片 -->
+        <div class="image-section flex-1 max-w-lg">
+          <div class="image-container relative bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-4 transition-all duration-200 hover:border-gray-300 dark:hover:border-zinc-600">
+            <div class="image-wrapper relative overflow-hidden rounded">
+              <a-image 
+                :src="outputURL"
+                class="w-full h-auto max-h-80 object-contain"
+                :preview="{ mask: false }"
+                fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f5f5f5'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='%23999' font-family='Arial, sans-serif' font-size='14'%3E处理结果%3C/text%3E%3C/svg%3E"
+              />
+              <!-- 图片标签 -->
+              <div class="image-label absolute top-2 left-2 bg-green-600 dark:bg-green-600 text-white px-2 py-1 rounded text-xs font-medium">
+                {{ t('preview.processedImage') }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部提示 -->
+    <div class="footer-tip text-center py-4 border-t border-gray-200 dark:border-zinc-700">
+      <p class="text-xs text-gray-600 dark:text-zinc-400">
+        按 <kbd class="px-1.5 py-0.5 bg-gray-100 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded text-xs">ESC</kbd> 键关闭窗口
+      </p>
+    </div>
+  </div>
 </template>
+
 <style scoped>
-.preview-img /deep/ .ant-image {
-    background-image: url('../assets/img/3623f49a093c354a.svg');
+.preview-container {
+  height: 100vh;
+}
+
+.content-area {
+  min-height: calc(100vh - 140px); /* 减去头部和底部高度 */
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .comparison-wrapper {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .arrow-section {
+    margin: 0.5rem 0;
+  }
+  
+  .arrow-section > div {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .arrow-section > div > div:first-child,
+  .arrow-section > div > div:last-child {
+    width: 2px;
+    height: 16px;
+  }
+  
+  .arrow-section .arrow-wrapper {
+    transform: rotate(90deg);
+  }
+  
+  .image-section {
+    max-width: 100%;
+  }
 }
 </style>

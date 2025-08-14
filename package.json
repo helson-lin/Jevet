@@ -22,6 +22,7 @@
   "scripts": {
     "postinstall": "electron-builder install-app-deps",
     "dev": "vite",
+    "dev:gc": "node --expose-gc node_modules/electron/dist/electron.js .",
     "app:dir": "electron-builder --dir",
     "app:dist": "vue-tsc --noEmit && vite build && electron-builder",
     "app:dist:debug": "vue-tsc --noEmit && vite build && electron-builder --publish=never",
@@ -31,18 +32,17 @@
     "check:ort": "node -e \"console.log('Checking onnxruntime-node installation...'); const fs = require('fs'); const path = require('path'); const bindingPath = path.join('node_modules', 'onnxruntime-node', 'bin', 'napi-v3', 'win32', 'x64', 'onnxruntime_binding.node'); console.log('Path:', bindingPath); console.log('Exists:', fs.existsSync(bindingPath)); if (fs.existsSync(bindingPath)) { const stats = fs.statSync(bindingPath); console.log('Size:', stats.size, 'bytes'); console.log('Modified:', stats.mtime); console.log('IsFile:', stats.isFile()); console.log('Readable:', fs.constants.R_OK, fs.accessSync(bindingPath, fs.constants.R_OK, (err) => !err)); try { console.log('Can require:', !!require(bindingPath)); } catch(e) { console.log('Require error:', e.message); } } const binDir = path.join('node_modules', 'onnxruntime-node', 'bin', 'napi-v3', 'win32', 'x64'); if (fs.existsSync(binDir)) { console.log('Bin directory contents:', fs.readdirSync(binDir)); }\"",
     "clean:ort": "rmdir /s /q node_modules\\onnxruntime-node 2>nul & del package-lock.json 2>nul & npm install onnxruntime-node",
     "fix:ort": "npm run clean:ort && npm run rebuild:ort",
-    "install:ort-prebuilt": "npm uninstall onnxruntime-node && npm install onnxruntime-node --ignore-scripts && npm run postinstall:ort",
     "postinstall:ort": "cd node_modules/onnxruntime-node && npm run install",
     "check:env": "node -e \"console.log('Node:', process.version); console.log('Arch:', process.arch); console.log('Platform:', process.platform); console.log('Electron:', require('electron/package.json').version); try { console.log('MSBuild:', require('child_process').execSync('where msbuild', {encoding:'utf8'}).trim()); } catch(e) { console.log('MSBuild: Not found'); } try { console.log('VS BuildTools:', require('child_process').execSync('where devenv || where msbuild', {encoding:'utf8', shell:true}).trim()); } catch(e) { console.log('VS BuildTools: Not found - Please install Visual Studio Build Tools'); }\"",
     "test:ort": "node -e \"console.log('Testing onnxruntime-node direct import...'); try { const ort = require('onnxruntime-node'); console.log('SUCCESS: onnxruntime-node loaded successfully'); console.log('Version:', ort.version || 'unknown'); console.log('Available providers:', ort.InferenceSession?.supportedBackends || 'unknown'); } catch(e) { console.log('ERROR:', e.message); console.log('Stack:', e.stack); }\"",
     "clean:all": "rmdir /s /q node_modules 2>nul & del package-lock.json 2>nul",
-    "clean:electron": "rmdir /s /q node_modules\\electron 2>nul",
     "reinstall": "npm run clean:all && npm cache clean --force && npm install",
-    "fix:electron": "npm run clean:electron && npm install electron",
-    "check:build": "node scripts/checkBuild.js",
     "preview": "vite preview",
     "sharp:mac": "del-cli ./node_modules/sharp && npm install --platform=darwin --arch=arm64 sharp",
-    "sharp:linux": "del-cli./node_modules/sharp && npm install --platform=linux --arch=x64 sharp"
+    "sharp:linux": "del-cli./node_modules/sharp && npm install --platform=linux --arch=x64 sharp",
+    "logs:show": "echo \"请在应用内通过日志查看器查看日志，或访问用户数据目录/logs文件夹\"",
+    "logs:help": "echo \"日志功能: 1. 应用内访问 /logs 页面查看日志 2. 日志文件位于用户数据目录/logs 3. 支持实时查看、搜索、导出功能\"",
+    "logs:path": "echo \"日志文件路径: %APPDATA%/Jevet/logs (Windows) 或 ~/Library/Application Support/Jevet/logs (Mac)\""
   },
   "devDependencies": {
     "@electron/fuses": "^1.8.0",

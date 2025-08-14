@@ -23,6 +23,21 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   // ...
 })
 
+// --------- Expose ElectronAPI for modern usage ---------
+contextBridge.exposeInMainWorld('electronAPI', {
+  // General IPC methods
+  invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args),
+  on: (channel: string, listener: (...args: any[]) => void) => {
+    ipcRenderer.on(channel, (event, ...args) => listener(...args))
+  },
+  off: (channel: string, listener: (...args: any[]) => void) => {
+    ipcRenderer.off(channel, listener)
+  },
+  send: (channel: string, ...args: any[]) => {
+    ipcRenderer.send(channel, ...args)
+  }
+})
+
 // --------- Preload scripts loading ---------
 function domReady(condition: DocumentReadyState[] = ['complete', 'interactive']) {
   return new Promise((resolve) => {

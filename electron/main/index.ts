@@ -6,7 +6,9 @@ import { VITE_DEV_SERVER_URL, PUBLIC_DIR, RENDERER_DIST, __dirname } from "./con
 import { setupWindowHandlers } from "./ipc/window";
 import { setupFileHandlers } from "./ipc/file";
 import { setupImageHandlers } from "./ipc/image";
-import { setupConfig, setupNativeTheme } from './ipc/config/index'
+import { setupLoggerHandlers } from "./ipc/logger";
+import { setupConfig, setupNativeTheme } from './ipc/config/index';
+import { logger } from '../utils/logger';
 
 // Fix native module path for Windows (both dev and production)
 if (process.platform === "win32") {
@@ -138,6 +140,16 @@ app.whenReady().then(() => {
   createWindow();
 
   // 设置所有 IPC 处理程序
+  // 首先初始化日志系统
+  logger.info('Main', 'Electron主进程启动', {
+    platform: process.platform,
+    arch: process.arch,
+    nodeVersion: process.version,
+    electronVersion: process.versions.electron,
+    isDev: !!process.env.VITE_DEV_SERVER_URL
+  });
+
+  setupLoggerHandlers();
   setupWindowHandlers(preload, indexHtml);
   setupFileHandlers();
   setupImageHandlers();

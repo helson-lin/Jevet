@@ -3,6 +3,7 @@ import ImgProcess from './pages/ImgProcess.vue'
 import ImgRemoveBg from './pages/ImgRemoveBg.vue'
 import Preview from './pages/Preview.vue'
 import Setting from './pages/Setting.vue'
+import LogViewer from './pages/LogViewer.vue'
 const routes = [
     {
       path: '/',
@@ -27,6 +28,11 @@ const routes = [
       path: '/setting',
       name: 'Setting',
       component: Setting,
+    },
+    {
+      path: '/logs',
+      name: 'LogViewer',
+      component: LogViewer,
     }
   ]
   const router = createRouter({

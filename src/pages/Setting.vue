@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watchEffect } from "vue";
 import { useI18n } from "vue-i18n";
-import { FolderOpen, Download, Loading, CheckOne } from "@icon-park/vue-next";
-import { message, type UploadProps } from "ant-design-vue";
+import { FolderOpen, Download, Loading, CheckOne, Log } from "@icon-park/vue-next";
+import { message, Modal, type UploadProps } from "ant-design-vue";
 import { useStore } from "../store/index";
+import { useRouter } from "vue-router";
 import Icon from "../components/Icon.vue";
 const { t, locale: i18nLocale } = useI18n();
+const router = useRouter();
 
 interface ModelInfo {
   id: string;
@@ -221,6 +223,75 @@ const startDownload = async (modelInfo: ModelInfo) => {
 const cancelDownload = (modelId: string) => {
   window.ipcRenderer.send(`cancel-download-${modelId}`);
 };
+
+// 打开日志页面
+const openLogViewer = () => {
+  router.push('/logs');
+};
+
+// 处理 GPU 开关切换
+const handleGPUToggle = async (val: boolean) => {
+  if (!val) {
+    // 关闭 GPU 加速，直接保存
+    updateSettings({ useGPU: false }, () => {
+      store.getConfig();
+      message.success(t('settings.updateSuccess'));
+    });
+    return;
+  }
+
+  // 开启 GPU 加速前先检查 CUDA 环境
+  try {
+    message.loading({ content: t('settings.cudaChecking'), key: 'cuda-check' });
+    
+    const result = await window.electronAPI.invoke('check-cuda-status');
+    
+    message.destroy('cuda-check');
+    
+    if (result.success && result.cudaAvailable) {
+      // CUDA 环境正常，可以开启 GPU 加速
+      updateSettings({ useGPU: true }, () => {
+        store.getConfig();
+        message.success(`${t('settings.cudaEnabled')} (${result.version || t('settings.cudaAvailable')})`);
+      });
+    } else {
+      // CUDA 环境不可用，显示详细的错误信息
+      const errorMessage = result.errorMessage || t('settings.cudaEnvCheckFailed');
+      const defaultRecommendations = [
+        t('settings.cudaSolution1'),
+        t('settings.cudaSolution2'),
+        t('settings.cudaSolution3')
+      ];
+      const recommendations = result.recommendations || defaultRecommendations;
+      
+      // 显示详细的错误对话框
+      const content = [
+        t('settings.cudaSolutions'),
+        ...recommendations.map((r: string, index: number) => `${index + 1}. ${r}`)
+      ].join('\n');
+      
+      Modal.error({
+        title: t('settings.cudaCheckFailed'),
+        content: `${errorMessage}\n\n${content}`,
+        width: 500,
+        okText: t('settings.understood'),
+        centered: true
+      });
+      
+      console.warn('CUDA 检测失败详情:', result.diagnosticInfo);
+    }
+  } catch (error: any) {
+    message.destroy('cuda-check');
+    Modal.error({
+      title: t('settings.cudaCheckError'),
+      content: `${t('settings.cudaCheckException')}${error?.message || t('settings.cudaErrorUnknown')}\n\n${t('settings.cudaRetryTip')}`,
+      width: 400,
+      okText: t('settings.understood'),
+      centered: true
+    });
+    console.error('CUDA 检测异常:', error);
+  }
+};
 </script>
 
 <template>
@@ -331,7 +402,7 @@ const cancelDownload = (modelId: string) => {
                   <span class="text-sm text-gray-700 dark:text-zinc-300">{{ t('settings.useGPU') }}</span>
                   <a-switch
                     :checked="settings.useGPU"
-                    @change="(val: boolean) => updateSettings({ useGPU: val }, () => { store.getConfig(); message.success(t('settings.updateSuccess')) })"
+                    @change="handleGPUToggle"
                   />
                 </div>
                 <div class="flex items-center justify-between rounded px-3 py-2">
@@ -459,6 +530,41 @@ const cancelDownload = (modelId: string) => {
                   :stroke-color="{ from: '#108ee9', to: '#87d068' }"
                 />
               </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 系统管理 -->
+        <section class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm">
+          <h2
+            class="text-large font-semibold dark:text-zinc-300 text-gray-900 mb-4 flex items-center"
+          >
+            {{ t("settings.systemManagement") }}
+          </h2>
+
+          <div class="space-y-4">
+            <!-- 日志查看器 -->
+            <div class="flex items-center justify-between p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:border-zinc-300 dark:hover:border-zinc-600 transition-all duration-200">
+              <div class="flex items-center space-x-3">
+                <div class="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <log theme="outline" size="20" fill="#3B82F6" />
+                </div>
+                <div>
+                  <h3 class="text-sm font-medium text-gray-900 dark:text-zinc-300">
+                    {{ t("settings.logViewer") }}
+                  </h3>
+                  <p class="text-xs text-gray-500 dark:text-zinc-400">
+                    {{ t("settings.logViewerDesc") }}
+                  </p>
+                </div>
+              </div>
+              <a-button 
+                type="default" 
+                @click="openLogViewer"
+                class="hover:opacity-90 transition-opacity"
+              >
+                {{ t("settings.openLogViewer") }}
+              </a-button>
             </div>
           </div>
         </section>

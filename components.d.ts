@@ -13,6 +13,7 @@ declare module 'vue' {
     AImage: typeof import('ant-design-vue/es')['Image']
     AInput: typeof import('ant-design-vue/es')['Input']
     AInputNumber: typeof import('ant-design-vue/es')['InputNumber']
+    AInputSearch: typeof import('ant-design-vue/es')['InputSearch']
     AProgress: typeof import('ant-design-vue/es')['Progress']
     ASelect: typeof import('ant-design-vue/es')['Select']
     ASelectOption: typeof import('ant-design-vue/es')['SelectOption']
