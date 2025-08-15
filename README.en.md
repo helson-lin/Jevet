@@ -132,7 +132,14 @@ Jevet/
 
 ## 📖 User Guide
 
-### 1️⃣ Model Management
+### Runtime environment
+  
+**First-time use requires installation of the Microsoft Visual C++ runtime library：**
+
+[X64](https://aka.ms/vs/17/release/vc_redist.x64.exe)、
+[X86](https://aka.ms/vs/17/release/vc_redist.x86.exe)
+
+### Model Management
 1. Open the app and click the Settings icon (bottom-left)
 2. In Model Management, choose the AI models you need
 3. Click Download; the app will download and verify with MD5 automatically

@@ -132,7 +132,14 @@ Jevet/
 
 ## 📖 使用指南
 
-### 1️⃣ 模型管理
+### 运行环境
+  
+**首次使用需要安装 Microsoft Visual C++ 运行库：**
+
+[X64](https://aka.ms/vs/17/release/vc_redist.x64.exe)、
+[X86](https://aka.ms/vs/17/release/vc_redist.x86.exe)
+
+### 模型管理
 1. 打开应用，点击左下角 **设置** 图标
 2. 在 **模型管理** 区域选择需要的 AI 模型
 3. 点击 **下载** 按钮，应用会自动下载并进行 MD5 校验
