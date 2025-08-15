@@ -6,6 +6,16 @@ export default {
     iconGenerator: '图标生成器',
     iconGeneratorDesc: '编辑和生成您的应用图标'
   },
+  // 开源提示
+  opensource: {
+    title: '🎉 开源免费软件',
+    description: 'Jevet 是完全免费的开源软件，永久免费使用',
+    warning: '⚠️ 切勿为此软件付费！如有人向您收费，请立即举报',
+    github: '查看源代码',
+    report: '问题反馈',
+    donate: '支持开发者',
+    donateDesc: '如果这个软件对您有帮助，欢迎捐助支持开发者持续维护和改进'
+  },
   home: {
     imageCompression: '图片转码压缩',
     imageCompressionDesc: '支持多种格式转换，包括PNG、JPG、WEBP等',
@@ -130,6 +140,17 @@ export default {
     notice: {
       icns: 'icns 格式无法调整尺寸和压缩率,其他参数无效',
       ico: 'ico为 windows 程序图标格式'
+    },
+    // 处理结果消息
+    results: {
+      completed: '✨ 处理完成！',
+      statistics: '📊 统计：{successCount}张成功',
+      failed: '，{failedCount}张失败',
+      timing: '⏱️ 用时：总计{totalTime}秒，平均{avgTime}秒/张',
+      cpuProcessed: '⚙️ {count}张使用CPU推理处理',
+      cpuUsed: '，{cpuCount}张使用CPU',
+      allCpu: '🖥️ 全部使用CPU处理',
+      partialComplete: '部分处理完成：{processedCount}张，耗时{errorTime}秒'
     }
   },
   options: {

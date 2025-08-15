@@ -155,10 +155,10 @@ const openHomePage = (homepage: string) =>
 const refreshModelList = async () => {
   try {
     await store.getConfig();
-    message.success(t("settings.refreshSuccess") || "刷新成功");
+    message.success(t("settings.refreshSuccess") || "Refresh success");
   } catch (error) {
     console.error("Failed to refresh model list:", error);
-    message.error(t("settings.refreshError") || "刷新失败");
+    message.error(t("settings.refreshError") || "Refresh failed");
   }
 };
 
@@ -175,7 +175,6 @@ const startDownload = async (modelInfo: ModelInfo) => {
         model.progress = data.progress;
       }
     });
-    console.log('开始下载', modelInfo.fileName);
     // 启动下载
     const result = await window.ipcRenderer.invoke("dowloadModel", {
       url: `https://storage.helson-lin.cn/models/${modelInfo.fileName}`,
@@ -193,16 +192,16 @@ const startDownload = async (modelInfo: ModelInfo) => {
           fileName: modelInfo.fileName,
           modelId: modelInfo.id
         });
-        console.log("已自动删除未完成的模型文件:", modelInfo.fileName);
+        console.log("Auto delete incomplete model file:", modelInfo.fileName);
       } catch (deleteError) {
-        console.error("删除未完成模型文件失败:", deleteError);
+        console.error("Failed to delete incomplete model file:", deleteError);
       }
       model.status = "not_downloaded";
       model.progress = 0;
-      console.error("下载失败:", result.message);
+      console.error("Download failed:", result.message);
     }
   } catch (error) {
-    console.error("下载出错:", error);
+    console.error("Download error:", error);
     message.warning(String(error));
     // 下载异常时也尝试清理文件
     try {
@@ -210,9 +209,9 @@ const startDownload = async (modelInfo: ModelInfo) => {
         fileName: modelInfo.fileName,
         modelId: modelInfo.id
       });
-      console.log("已自动删除未完成的模型文件:", modelInfo.fileName);
+      console.log("Auto delete incomplete model file:", modelInfo.fileName);
     } catch (deleteError) {
-      console.error("删除未完成模型文件失败:", deleteError);
+      console.error("Failed to delete incomplete model file:", deleteError);
     }
     model.status = "not_downloaded";
     model.progress = 0;
@@ -278,7 +277,7 @@ const handleGPUToggle = async (val: boolean) => {
         centered: true
       });
       
-      console.warn('CUDA 检测失败详情:', result.diagnosticInfo);
+      console.warn('CUDA detection failure details:', result.diagnosticInfo);
     }
   } catch (error: any) {
     message.destroy('cuda-check');
@@ -289,7 +288,7 @@ const handleGPUToggle = async (val: boolean) => {
       okText: t('settings.understood'),
       centered: true
     });
-    console.error('CUDA 检测异常:', error);
+    console.error('CUDA detection exception:', error);
   }
 };
 </script>
@@ -300,6 +299,60 @@ const handleGPUToggle = async (val: boolean) => {
   >
     <div class="max-w-3xl mx-auto h-full px-4 sm:px-6 lg:px-8">
       <div class="space-y-6 pb-4">
+        <!-- 开源软件提示 -->
+        <section class="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <h3 class="text-base font-medium text-gray-900 dark:text-zinc-300 mb-2 flex items-center">
+                <span class="mr-2">🎉</span>
+                {{ t('opensource.title') }}
+              </h3>
+              <p class="text-sm text-gray-600 dark:text-zinc-400 mb-3">
+                {{ t('opensource.description') }}
+              </p>
+              
+              <!-- 捐助信息 -->
+              <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded p-2 mb-3">
+                <p class="text-xs text-green-800 dark:text-green-200 flex items-start">
+                  <span class="mr-2">💝</span>
+                  {{ t('opensource.donateDesc') }}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 操作按钮 -->
+          <div class="flex flex-wrap gap-2">
+            <a-button 
+              type="primary" 
+              size="small"
+              @click="() => openHomePage('https://github.com/helson-lin/Jevet')"
+              class="hover:opacity-90 transition-opacity"
+            >
+              <template #icon>
+                <Icon name="github" :size="14" light="#FFFFFF" dark="#FFFFFF"  class="mr-1"/>
+              </template>
+              {{ t('opensource.github') }}
+            </a-button>
+            <a-button 
+              size="small"
+              @click="() => openHomePage('https://github.com/helson-lin/Jevet/issues')"
+              class="hover:opacity-90 transition-opacity"
+            >
+              {{ t('opensource.report') }}
+            </a-button>
+            <a-button 
+              size="small"
+              @click="() => openHomePage('https://github.com/helson-lin/Jevet')"
+              class="hover:opacity-90 transition-opacity bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100 hover:border-pink-300 dark:bg-pink-900/20 dark:border-pink-700 dark:text-pink-300 dark:hover:bg-pink-900/30"
+            >
+              <template #icon>
+                <span class="mr-1">💝</span>
+              </template>
+              {{ t('opensource.donate') }}
+            </a-button>
+          </div>
+        </section>
         <!-- 路径设置 -->
         <section class="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm">
           <h2

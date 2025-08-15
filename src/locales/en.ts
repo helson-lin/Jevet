@@ -6,6 +6,16 @@ export default {
     iconGenerator: 'Icon Generator',
     iconGeneratorDesc: 'Edit and generate your app icons'
   },
+  // Open source notice
+  opensource: {
+    title: '🎉 Free Open Source Software',
+    description: 'Jevet is completely free and open source software, free to use forever',
+    warning: '⚠️ Never pay for this software! If anyone charges you, please report immediately',
+    github: 'View Source Code',
+    report: 'Report Issue',
+    donate: 'Support Developer',
+    donateDesc: 'If this software is helpful to you, welcome to donate to support the developer for continuous maintenance and improvement'
+  },
   home: {
     imageCompression: 'Image Compression',
     imageCompressionDesc: 'Support multiple format conversion, including PNG, JPG, WEBP, etc.',
@@ -131,6 +141,17 @@ export default {
     notice: {
       icns: 'ICNS format cannot adjust size and compression ratio, other parameters are invalid',
       ico: 'ICO is the Windows program icon format'
+    },
+    // Processing result messages
+    results: {
+      completed: '✨ Processing completed!',
+      statistics: '📊 Statistics: {successCount} successful',
+      failed: ', {failedCount} failed',
+      timing: '⏱️ Time: {totalTime}s total, {avgTime}s average per image',
+      gpuUsed: '⚡ {cudaCount} images processed with GPU acceleration',
+      cpuUsed: ', {cpuCount} with CPU',
+      allCpu: '🖥️ All processed with CPU',
+      partialComplete: 'Partially completed: {processedCount} images in {errorTime}s'
     }
   },
   options: {

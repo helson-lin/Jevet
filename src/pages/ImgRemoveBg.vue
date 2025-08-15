@@ -148,12 +148,12 @@ watchEffect(() => {
   if (supportedModels.value.length > 0) {
     // 优先选择高分辨率模型，其次 u2net
     const preferOrder = [
-      'bria-rmbg-2.0',
       'rmbg-1.4',
+      'u2net',
       'isnet-general-use',
       'u2net_human_seg',
       'silueta',
-      'u2net'
+      'bria-rmbg-2.0'
     ];
     const pick = preferOrder.find(m => supportedModels.value.includes(m)) || supportedModels.value[0];
     options.value.model = pick;
@@ -352,20 +352,23 @@ const processIMG = async () => {
               const totalTimeSeconds = (stats.totalTime / 1000).toFixed(1);
               const avgTimeSeconds = (stats.avgTimePerImage / 1000).toFixed(1);
               
-              let statusMessage = `✨ 处理完成！`;
-              statusMessage += `\n📊 统计：${stats.successCount}张成功`;
+              let statusMessage = t('removeBg.results.completed');
+              statusMessage += `\n${t('removeBg.results.statistics', { successCount: stats.successCount })}`;
               if (stats.failedCount > 0) {
-                statusMessage += `，${stats.failedCount}张失败`;
+                statusMessage += t('removeBg.results.failed', { failedCount: stats.failedCount });
               }
-              statusMessage += `\n⏱️ 用时：总计${totalTimeSeconds}秒，平均${avgTimeSeconds}秒/张`;
+              statusMessage += `\n${t('removeBg.results.timing', { 
+                totalTime: totalTimeSeconds, 
+                avgTime: avgTimeSeconds 
+              })}`;
               
               if (stats.cudaUsedCount > 0) {
-                statusMessage += `\n⚡ ${stats.cudaUsedCount}张使用GPU加速`;
+                statusMessage += `\n${t('removeBg.results.gpuUsed', { cudaCount: stats.cudaUsedCount })}`;
                 if (stats.cpuUsedCount > 0) {
-                  statusMessage += `，${stats.cpuUsedCount}张使用CPU`;
+                  statusMessage += t('removeBg.results.cpuUsed', { cpuCount: stats.cpuUsedCount });
                 }
               } else if (stats.cpuUsedCount > 0) {
-                statusMessage += `\n🖥️ 全部使用CPU处理`;
+                statusMessage += `\n${t('removeBg.results.allCpu')}`;
               }
               
               message.success(statusMessage, 4);
@@ -378,7 +381,10 @@ const processIMG = async () => {
               // 如果有统计信息，也显示部分成功的情况
               if (data.statistics && data.statistics.processedCount && data.statistics.processedCount > 0) {
                 const errorTimeSeconds = data.statistics.errorTime ? (data.statistics.errorTime / 1000).toFixed(1) : '0';
-                message.info(`部分处理完成：${data.statistics.processedCount}张，耗时${errorTimeSeconds}秒`);
+                message.info(t('removeBg.results.partialComplete', { 
+                  processedCount: data.statistics.processedCount,
+                  errorTime: errorTimeSeconds 
+                }));
               }
             }
           }
@@ -515,7 +521,7 @@ const getProcessTime = (uid: string) => {
                 <!-- 压缩率显示 -->
                 <div v-if="ii.status === 1 && ii.compressionRatio" 
                      class="absolute top-2 right-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full text-xs font-medium">
-                  -{{ ii.compressionRatio }}
+                  {{ ii.compressionRatio }}
                 </div>
               </div>
             </div>

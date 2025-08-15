@@ -9,6 +9,7 @@ import * as png2icns from 'png2icons';
 // 延迟加载 onnxruntime-node，避免打包期处理原生绑定
 import { MODEL_OPTION, type ModelOptionItem, getConfig } from './config/index'
 import { logger } from '../../utils/logger';
+// Removed i18n imports - using English directly
 
 // ES 模块兼容的 __dirname 和 require
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -25,7 +26,7 @@ function logMemoryUsage(uid: string, stage: string) {
   const currentMB = Math.round(memUsage.heapUsed / 1024 / 1024);
   peakMemoryUsage = Math.max(peakMemoryUsage, currentMB);
   
-  logger.debug('MemoryMonitor', `内存使用监控 ${uid}`, {
+  logger.debug('MemoryMonitor', `Memory usage monitoring ${uid}`, {
     uid,
     stage,
     currentMB,
@@ -64,16 +65,16 @@ interface ImageProcessOptions {
  * - compress：图片压缩/转码
  * - remove：背景移除（ONNX 推理）
  */
-export function setupImageHandlers() {
-  logger.info('ImageIPC', '图像处理IPC处理器初始化开始');
+export async function setupImageHandlers() {
+  logger.info('ImageIPC', 'Image IPC handlers initialization started');
   
   // 注册会话缓存管理处理器
   ipcMain.handle('image:clearSessionCache', async () => {
     try {
       await clearSessionCache();
-      return { success: true, message: '会话缓存已清理' };
+      return { success: true, message: 'Session cache cleared successfully' };
     } catch (e) {
-      logger.error('ImageIPC', '清理会话缓存失败', { error: e.message }, e);
+      logger.error('ImageIPC', 'Failed to clear session cache', { error: e.message }, e);
       return { success: false, error: e.message };
     }
   });
@@ -103,9 +104,9 @@ export function setupImageHandlers() {
     try {
       if (global.gc && process.platform === 'win32') {
         global.gc();
-        return { success: true, message: '垃圾回收已执行' };
+        return { success: true, message: 'Garbage collection executed successfully' };
       } else {
-        return { success: false, message: '垃圾回收不可用或非Windows平台' };
+        return { success: false, message: 'Garbage collection not available on this platform' };
       }
     } catch (e) {
       return { success: false, error: e.message };
@@ -114,7 +115,7 @@ export function setupImageHandlers() {
   
   //  实现图片转码
   ipcMain.handle("compress", async (_, arg: { imgs: IMG_ITEM[]; options?: ImageProcessOptions }) => {
-    logger.info('ImageCompress', '开始图片压缩处理', { 
+    logger.info('ImageCompress', 'Image compression process started', { 
       imageCount: arg.imgs?.length || 0,
       options: arg.options 
     });
@@ -182,10 +183,10 @@ export function setupImageHandlers() {
       return {
         success: true,
         results,
-        message: `成功并行处理了${results.length}张图片`,
+        message: `Successfully processed ${results.length} images`,
       };
     } catch (e) {
-      logger.error("ImageCompress", "图片压缩处理失败", { 
+      logger.error("ImageCompress", 'Image compression process failed', { 
         imageCount: arg.imgs?.length || 0,
         options: arg.options,
         error: e.message 
@@ -203,7 +204,7 @@ export function setupImageHandlers() {
     const startTime = Date.now();
     let results: any[] = [];
     
-    logger.info('ImageRemoveBg', '开始抠图处理', { 
+    logger.info('ImageRemoveBg', 'Background removal process started', { 
       imageCount: arg.imgs?.length || 0,
       model: arg.options?.model,
       outputFormat: arg.options?.outputformat
@@ -220,7 +221,7 @@ export function setupImageHandlers() {
         batches.push(imgs.slice(i, i + BATCH_SIZE));
       }
       
-      logger.info('ImageRemoveBg', '分批处理配置', { 
+      logger.info('ImageRemoveBg', 'Batch processing configuration', { 
         totalImages: imgs.length,
         batchSize: BATCH_SIZE,
         totalBatches: batches.length
@@ -231,7 +232,7 @@ export function setupImageHandlers() {
         const batch = batches[batchIndex];
         const batchStartTime = Date.now();
         
-        logger.info('ImageRemoveBg', `开始处理第${batchIndex + 1}批`, {
+        logger.info('ImageRemoveBg', `Processing batch ${batchIndex + 1}`, {
           batchIndex: batchIndex + 1,
           totalBatches: batches.length,
           batchSize: batch.length,
@@ -247,7 +248,7 @@ export function setupImageHandlers() {
               uid: imgItem.uid
             });
           } catch (error) {
-            logger.error('ImageRemoveBg', `单张图片处理失败 ${imgItem.uid}`, {
+            logger.error('ImageRemoveBg', `Failed to process single image ${imgItem.uid}`, {
               uid: imgItem.uid,
               error: error.message
             }, error);
@@ -259,7 +260,7 @@ export function setupImageHandlers() {
         results.push(...batchResults);
         
         const batchTime = Date.now() - batchStartTime;
-        logger.info('ImageRemoveBg', `第${batchIndex + 1}批处理完成`, {
+        logger.info('ImageRemoveBg', `Batch ${batchIndex + 1} completed`, {
           batchIndex: batchIndex + 1,
           batchSize: batch.length,
           batchTime,
@@ -272,7 +273,7 @@ export function setupImageHandlers() {
         // 强制垃圾回收（如果可用）
         if (global.gc && process.platform === 'win32') {
           global.gc();
-          logger.debug('ImageRemoveBg', `批次${batchIndex + 1}后执行垃圾回收`);
+          logger.debug('ImageRemoveBg', `Garbage collection after batch ${batchIndex + 1}`);
         }
         
         // 添加小延迟，让其他操作有机会执行
@@ -289,7 +290,7 @@ export function setupImageHandlers() {
       const cudaUsedCount = results.filter(r => r.executionProviders?.usingCuda).length;
       const cpuUsedCount = results.filter(r => r.executionProviders && !r.executionProviders.usingCuda).length;
       
-      logger.info('ImageRemoveBg', '抠图处理完成', { 
+      logger.info('ImageRemoveBg', 'Background removal process completed', { 
         totalImages: imgs.length,
         processedCount: results.length,
         successCount,
@@ -324,7 +325,7 @@ export function setupImageHandlers() {
     } catch (e) {
       const errorTime = Date.now() - startTime;
       const processedCount = results?.length || 0;
-      logger.error('ImageRemoveBg', '抠图处理失败', { 
+      logger.error('ImageRemoveBg', 'Background removal process failed', { 
         imageCount: arg.imgs?.length || 0,
         model: arg.options?.model,
         error: e.message,
@@ -351,7 +352,7 @@ export function setupImageHandlers() {
 
   // 添加 CUDA 诊断检查处理器
   ipcMain.handle('check-cuda-status', async () => {
-    logger.info('CudaCheck', '开始CUDA状态检查');
+    logger.info('CudaCheck', 'CUDA status check started');
     
     try {
       const ort = await import('onnxruntime-node');
@@ -365,25 +366,25 @@ export function setupImageHandlers() {
         errorMessage: cudaCheck.errorMessage,
         diagnosticInfo: cudaCheck.diagnosticInfo,
         recommendations: cudaCheck.available 
-          ? ['CUDA 环境正常，GPU 加速可用'] 
+          ? ['CUDA environment is normal, GPU acceleration is available'] 
           : [
-              '检查 NVIDIA 显卡驱动程序是否已安装',
-              '确保 CUDA >= 11.4 已正确安装',
-              '确保 cuDNN >= 8.2 已正确安装',
-              '重启应用程序或计算机',
-              '如果问题持续存在，请尝试重新安装 CUDA 和 cuDNN'
+              'Check if NVIDIA GPU driver is installed',
+              'Ensure CUDA >= 11.4 is correctly installed',
+              'Ensure cuDNN >= 8.2 is correctly installed',
+              'Restart the application or computer',
+              'If the problem persists, try reinstalling CUDA and cuDNN'
             ]
       };
       
-      logger.info('CudaCheck', 'CUDA状态检查完成', result);
+      logger.info('CudaCheck', 'CUDA status check completed', result);
       return result;
       
     } catch (error) {
-      logger.error('CudaCheck', 'CUDA状态检查失败', { error: error.message }, error);
+      logger.error('CudaCheck', 'CUDA status check failed', { error: error.message }, error);
       return {
         success: false,
         cudaAvailable: false,
-        errorMessage: `CUDA 检查失败: ${error.message}`,
+        errorMessage: `CUDA check failed: ${error.message}`,
         diagnosticInfo: {
           platform: process.platform,
           arch: process.arch,
@@ -391,15 +392,15 @@ export function setupImageHandlers() {
           error: error.message
         },
         recommendations: [
-          '检查 onnxruntime-node 是否正确安装',
-          '运行 npm run check:ort 进行诊断',
-          '尝试重新安装依赖: npm run reinstall'
+          'Check if onnxruntime-node is correctly installed',
+          'Run system diagnostics',
+          'Try reinstalling dependencies'
         ]
       };
     }
   });
 
-  logger.info('ImageIPC', '图像处理IPC处理器初始化完成');
+  logger.info('ImageIPC', 'Image IPC handlers initialization completed');
 }
 
 
@@ -611,7 +612,7 @@ async function checkCudaEnvironment(ort: any, uid: string): Promise<{
     diagnosticInfo.availableProviders = availableProviders;
     
     const cudaAvailable = availableProviders.includes('cuda');
-    logger.info('CudaCheck', `CUDA 执行提供程序检测 ${uid}`, {
+    logger.info('CudaCheck', `CUDA execution provider detection ${uid}`, {
       uid,
       availableProviders,
       cudaAvailable,
@@ -621,7 +622,7 @@ async function checkCudaEnvironment(ort: any, uid: string): Promise<{
     if (!cudaAvailable) {
       return {
         available: false,
-        errorMessage: 'CUDA 执行提供程序不可用。可能原因：CUDA 驱动未安装、版本不兼容、或 cuDNN 缺失',
+        errorMessage: 'CUDA execution provider is not available. Possible reasons: CUDA driver not installed, version incompatible, or cuDNN missing',
         diagnosticInfo
       };
     }
@@ -629,7 +630,7 @@ async function checkCudaEnvironment(ort: any, uid: string): Promise<{
     // 尝试创建一个简单的 CUDA 会话进行验证
     try {
       const dummyTensor = new (ort as any).Tensor('float32', new Float32Array([1, 2, 3, 4]), [1, 4]);
-      logger.debug('CudaCheck', `CUDA 功能验证测试 ${uid}`, { uid, tensorShape: [1, 4] });
+      logger.debug('CudaCheck', `CUDA function verification test ${uid}`, { uid, tensorShape: [1, 4] });
       
       return {
         available: true,
@@ -637,7 +638,7 @@ async function checkCudaEnvironment(ort: any, uid: string): Promise<{
         diagnosticInfo
       };
     } catch (testError) {
-      logger.warn('CudaCheck', `CUDA 功能验证失败 ${uid}`, {
+      logger.warn('CudaCheck', `CUDA function verification failed ${uid}`, {
         uid,
         error: testError.message,
         diagnosticInfo
@@ -645,12 +646,12 @@ async function checkCudaEnvironment(ort: any, uid: string): Promise<{
       
       return {
         available: false,
-        errorMessage: `CUDA 功能验证失败: ${testError.message}`,
+        errorMessage: `CUDA function verification failed: ${testError.message}`,
         diagnosticInfo
       };
     }
   } catch (error) {
-    logger.error('CudaCheck', `CUDA 环境检测异常 ${uid}`, {
+    logger.error('CudaCheck', `CUDA environment detection exception ${uid}`, {
       uid,
       error: error.message,
       diagnosticInfo
@@ -658,7 +659,7 @@ async function checkCudaEnvironment(ort: any, uid: string): Promise<{
     
     return {
       available: false,
-      errorMessage: `CUDA 环境检测异常: ${error.message}`,
+      errorMessage: `CUDA environment detection exception: ${error.message}`,
       diagnosticInfo
     };
   }
@@ -670,7 +671,7 @@ async function getOrCreateSession(modelPath: string, sessionOptions: any, uid: s
   
   // 检查缓存
   if (sessionCache.has(cacheKey)) {
-    logger.info('SessionCache', `使用缓存会话 ${uid}`, { uid, cacheKey, cacheSize: sessionCache.size });
+    logger.info('SessionCache', `Using cached session ${uid}`, { uid, cacheKey, cacheSize: sessionCache.size });
     return sessionCache.get(cacheKey);
   }
   
@@ -678,9 +679,9 @@ async function getOrCreateSession(modelPath: string, sessionOptions: any, uid: s
   let ort;
   try {
     ort = await import('onnxruntime-node');
-    logger.info('RemoveBg', `onnxruntime-node 加载成功 ${uid}`, { uid });
+    logger.info('RemoveBg', `ONNX Runtime loaded successfully ${uid}`, { uid });
   } catch (firstError) {
-    logger.warn('RemoveBg', `onnxruntime-node 首次加载失败 ${uid}`, { 
+    logger.warn('RemoveBg', `First ONNX Runtime load failed ${uid}`, { 
       uid, error: firstError.message 
     }, firstError);
     
@@ -704,16 +705,16 @@ async function getOrCreateSession(modelPath: string, sessionOptions: any, uid: s
           if (fs.existsSync(path.join(modulePath, 'dist/index.js'))) {
             ort = await require(modulePath);
             loaded = true;
-            logger.info('RemoveBg', `Windows路径加载成功 ${uid}`, { uid, modulePath });
+            logger.info('RemoveBg', `Windows path ONNX Runtime load success ${uid}`, { uid, modulePath });
             break;
           }
-        } catch (e) {
-          logger.warn('RemoveBg', `Windows路径加载失败 ${uid}`, { uid, modulePath, error: e.message });
+                  } catch (e) {
+            logger.warn('RemoveBg', `Windows path ONNX Runtime load failed ${uid}`, { uid, modulePath, error: e.message });
         }
       }
       
       if (!loaded) {
-        throw new Error('无法加载 onnxruntime-node，请运行 npm run check:ort 进行诊断');
+        throw new Error('ONNX Runtime failed to load');
       }
     } else {
       throw firstError;
@@ -724,7 +725,7 @@ async function getOrCreateSession(modelPath: string, sessionOptions: any, uid: s
   const hasCudaProvider = sessionOptions.executionProviders?.includes('cuda');
   if (hasCudaProvider) {
     const cudaCheck = await checkCudaEnvironment(ort, uid);
-    logger.info('CudaCheck', `CUDA 环境检测完成 ${uid}`, {
+    logger.info('CudaCheck', `CUDA environment detection completed ${uid}`, {
       uid,
       cudaAvailable: cudaCheck.available,
       cudaVersion: cudaCheck.version,
@@ -733,7 +734,7 @@ async function getOrCreateSession(modelPath: string, sessionOptions: any, uid: s
     });
 
     if (!cudaCheck.available) {
-      logger.warn('CudaCheck', `CUDA 不可用，将从执行提供程序中移除 ${uid}`, {
+      logger.warn('CudaCheck', `CUDA is not available, will be removed from execution providers ${uid}`, {
         uid,
         originalProviders: sessionOptions.executionProviders,
         reason: cudaCheck.errorMessage
@@ -748,12 +749,12 @@ async function getOrCreateSession(modelPath: string, sessionOptions: any, uid: s
   }
   
   // 创建新会话
-  logger.info('SessionCache', `创建新会话 ${uid}`, { uid, modelPath, sessionOptions });
+  logger.info('SessionCache', `Creating new session ${uid}`, { uid, modelPath, sessionOptions });
   const session = await (ort as any).InferenceSession.create(modelPath, sessionOptions);
   
   // 记录实际使用的执行提供程序
   const activeProviders = (session as any).getActiveProviders?.() || 'unknown';
-  logger.info('SessionCache', `会话创建成功，实际执行提供程序 ${uid}`, {
+  logger.info('SessionCache', `Session creation successful, actual execution providers ${uid}`, {
     uid,
     requestedProviders: sessionOptions.executionProviders,
     activeProviders,
@@ -769,32 +770,32 @@ async function getOrCreateSession(modelPath: string, sessionOptions: any, uid: s
         await oldSession.release();
       }
     } catch (e) {
-      logger.warn('SessionCache', `释放旧会话失败`, { oldestKey, error: e.message });
+      logger.warn('SessionCache', 'Failed to release old session', { oldestKey, error: e.message });
     }
     sessionCache.delete(oldestKey);
-    logger.info('SessionCache', `移除旧会话`, { removedKey: oldestKey, cacheSize: sessionCache.size });
+    logger.info('SessionCache', 'Removed old session from cache', { removedKey: oldestKey, cacheSize: sessionCache.size });
   }
   
   sessionCache.set(cacheKey, session);
-  logger.info('SessionCache', `会话已缓存 ${uid}`, { uid, cacheKey, cacheSize: sessionCache.size });
+  logger.info('SessionCache', `Session cached ${uid}`, { uid, cacheKey, cacheSize: sessionCache.size });
   
   return session;
 }
 
 // 清理会话缓存
 async function clearSessionCache() {
-  logger.info('SessionCache', '开始清理会话缓存', { cacheSize: sessionCache.size });
+  logger.info('SessionCache', 'Starting session cache clear', { cacheSize: sessionCache.size });
   for (const [key, session] of Array.from(sessionCache)) {
     try {
       if (session && typeof session.release === 'function') {
         await session.release();
       }
     } catch (e) {
-      logger.warn('SessionCache', `释放会话失败`, { key, error: e.message });
+              logger.warn('SessionCache', 'Failed to release session during cache clear', { key, error: e.message });
     }
   }
   sessionCache.clear();
-  logger.info('SessionCache', '会话缓存已清理');
+  logger.info('SessionCache', 'Session cache cleared');
 }
 
 
@@ -875,7 +876,7 @@ async function removeBg(
     uid: string;
   }) {
   const startTime = Date.now();
-  logger.info('RemoveBg', `开始处理抠图任务 ${inputOptions.uid}`, {
+  logger.info('RemoveBg', `Background removal task started ${inputOptions.uid}`, {
     uid: inputOptions.uid,
     model: inputOptions.model,
     outputFormat: inputOptions.outputformat,
@@ -884,7 +885,7 @@ async function removeBg(
   });
   
   try {
-    logMemoryUsage(inputOptions.uid, '开始处理');
+    logMemoryUsage(inputOptions.uid, 'Start processing');
     
     // 临时文件目录
     const tempDir = os.tmpdir();
@@ -894,13 +895,13 @@ async function removeBg(
     );
     
     // 1. 获取配置和模型路径
-    logger.info('RemoveBg', `获取模型配置 ${inputOptions.uid}`, { uid: inputOptions.uid });
+    logger.info('RemoveBg', `Getting model configuration ${inputOptions.uid}`, { uid: inputOptions.uid });
     const config = await getConfig();
     const modelDir = config.data.modelDir;
     const modelDirPath = modelDir || path.join(process.cwd(), 'model');
     const modelPath = path.join(modelDirPath, `${inputOptions.model || 'u2net'}.onnx`);
     const ort = await import('onnxruntime-node');
-    logger.info('RemoveBg', `模型路径确定 ${inputOptions.uid}`, { 
+    logger.info('RemoveBg', `Model path determined ${inputOptions.uid}`, { 
       uid: inputOptions.uid,
       modelPath,
       modelExists: fs.existsSync(modelPath)
@@ -918,7 +919,7 @@ async function removeBg(
       executionProviders: candidateEPs
     };
     
-    logger.info('RemoveBg', `使用优化的会话配置 ${inputOptions.uid}`, { 
+    logger.info('RemoveBg', `Optimized session configuration ${inputOptions.uid}`, { 
       uid: inputOptions.uid,
       platform: process.platform,
       isWindows: process.platform === 'win32',
@@ -926,7 +927,7 @@ async function removeBg(
     });
     
     // 3. 获取或创建ONNX会话（使用缓存和改进的错误处理）
-    logMemoryUsage(inputOptions.uid, '会话创建前');
+    logMemoryUsage(inputOptions.uid, 'Session creation before');
     
     let session: any;
     let actualExecutionProviders: string[] = candidateEPs;
@@ -940,7 +941,7 @@ async function removeBg(
       const usingCuda = Array.isArray(activeProviders) ? activeProviders.includes('cuda') : false;
       actualExecutionProviders = Array.isArray(activeProviders) ? activeProviders : candidateEPs;
       
-      logger.info('RemoveBg', `ONNX会话获取成功 ${inputOptions.uid}`, { 
+      logger.info('RemoveBg', `Model loaded successfully ${inputOptions.uid}`, { 
         uid: inputOptions.uid,
         requestedProviders: candidateEPs,
         actualProviders: actualExecutionProviders,
@@ -950,18 +951,18 @@ async function removeBg(
 
       // 如果用户启用了 GPU 但实际未使用 CUDA，记录诊断信息
       if (allowGPU && candidateEPs.includes('cuda') && !usingCuda) {
-        logger.warn('RemoveBg', `用户启用了GPU但未使用CUDA ${inputOptions.uid}`, {
+        logger.warn('RemoveBg', `User enabled GPU but did not use CUDA ${inputOptions.uid}`, {
           uid: inputOptions.uid,
           userWantsCuda: true,
           actuallyUsingCuda: false,
           requestedProviders: candidateEPs,
           actualProviders: actualExecutionProviders,
-          suggestion: '请检查 CUDA 驱动程序、cuDNN 版本或查看日志获取详细诊断信息'
+                      suggestion: 'Please check CUDA installation: 1) NVIDIA driver 2) CUDA >= 11.4 3) cuDNN >= 8.2'
         });
       }
       
     } catch (err) {
-      logger.error('RemoveBg', `会话创建失败，尝试CPU回退 ${inputOptions.uid}`, { 
+      logger.error('RemoveBg', `Session creation failed, trying CPU fallback ${inputOptions.uid}`, { 
         uid: inputOptions.uid,
         originalError: err.message,
         requestedProviders: candidateEPs,
@@ -978,11 +979,11 @@ async function removeBg(
         session = await getOrCreateSession(modelPath, fallbackOptions, inputOptions.uid);
         actualExecutionProviders = ['cpu'];
         
-        logger.warn('RemoveBg', `CPU回退会话创建成功 ${inputOptions.uid}`, { 
+        logger.warn('RemoveBg', `CPU fallback session created successfully ${inputOptions.uid}`, { 
           uid: inputOptions.uid,
           fallbackReason: err.message,
           finalProviders: actualExecutionProviders,
-          performanceImpact: allowGPU ? 'GPU加速未生效，性能可能受影响' : '正常CPU处理模式'
+                     performanceImpact: allowGPU ? 'GPU acceleration not effective, performance may be affected' : 'Normal CPU processing mode'
         });
         
         // 保存诊断信息供后续使用
@@ -992,27 +993,27 @@ async function removeBg(
             cudaFailed: true,
             failureReason: err.message,
             fallbackToCpu: true,
-            recommendation: '请检查CUDA安装：1) NVIDIA驱动程序 2) CUDA >= 11.4 3) cuDNN >= 8.2'
+                         recommendation: 'Please check CUDA installation: 1) NVIDIA driver 2) CUDA >= 11.4 3) cuDNN >= 8.2'
           };
         }
         
       } catch (fallbackErr) {
-        logger.error('RemoveBg', `CPU回退也失败 ${inputOptions.uid}`, {
+        logger.error('RemoveBg', `CPU fallback also failed ${inputOptions.uid}`, {
           uid: inputOptions.uid,
           originalError: err.message,
           fallbackError: fallbackErr.message
         }, fallbackErr);
         
-        throw new Error(`会话创建完全失败：原始错误 [${err.message}]，CPU回退错误 [${fallbackErr.message}]`);
+        throw new Error(`Session creation completely failed: original error [${err.message}], CPU fallback error [${fallbackErr.message}]`);
       }
     }
     
-    logMemoryUsage(inputOptions.uid, '会话创建后');
+    logMemoryUsage(inputOptions.uid, 'Session creation after');
     // 获取模型的名称
     const filename = path.basename(modelPath);
     // 通过模型的名称获取模型的配置信息
     const options = getModelOption(filename);
-    logger.info('RemoveBg', `模型加载完成 ${inputOptions.uid}`, {
+    logger.info('RemoveBg', `Model loaded and configured ${inputOptions.uid}`, {
       uid: inputOptions.uid,
       filename,
       modelOptions: options,
@@ -1042,14 +1043,14 @@ async function removeBg(
       if ((!options.width || options.width <= 0) && dimW) options.width = dimW;
       if ((!options.height || options.height <= 0) && dimH) options.height = dimH;
     } catch (e) {
-      logger.warn('RemoveBg', `读取模型输入元数据失败 ${inputOptions.uid}`, { 
+              logger.warn('RemoveBg', `Failed to read model input metadata ${inputOptions.uid}`, { 
         uid: inputOptions.uid,
         error: e.message 
       }, e);
     }
     
     // 4. 图像预处理和尺寸优化
-    logger.info('RemoveBg', `开始图像预处理 ${inputOptions.uid}`, { 
+    logger.info('RemoveBg', `Image preprocessing started ${inputOptions.uid}`, { 
       uid: inputOptions.uid,
       originalBufferSize: inputBuffer.length,
       targetWidth: options.width,
@@ -1061,7 +1062,7 @@ async function removeBg(
     const originalWidth = originalMeta.width || 1024;
     const originalHeight = originalMeta.height || 1024;
     
-    logger.info('RemoveBg', `原图尺寸 ${inputOptions.uid}`, { 
+    logger.info('RemoveBg', `Original image size detected ${inputOptions.uid}`, { 
       uid: inputOptions.uid,
       originalWidth,
       originalHeight,
@@ -1081,7 +1082,7 @@ async function removeBg(
       targetW = Math.floor(targetW * scaleFactor);
       targetH = Math.floor(targetH * scaleFactor);
       
-      logger.warn('RemoveBg', `模型输入尺寸过大，已压缩 ${inputOptions.uid}`, {
+      logger.warn('RemoveBg', `Model input size compressed for memory optimization ${inputOptions.uid}`, {
         uid: inputOptions.uid,
         original: { width: options.width || modelRequiredW, height: options.height || modelRequiredH },
         compressed: { width: targetW, height: targetH },
@@ -1089,7 +1090,7 @@ async function removeBg(
       });
     }
     
-    logMemoryUsage(inputOptions.uid, '图像处理前');
+    logMemoryUsage(inputOptions.uid, 'Image processing before');
     
     // 图像处理 - 为模型推理准备输入
     // 对于 BRIA/RMBG 系列模型，使用严格尺寸缩放（不留边），以贴合其训练/推理习惯
@@ -1116,12 +1117,12 @@ async function removeBg(
     // 强制垃圾回收（如果可用）
     if (global.gc && process.platform === 'win32') {
       global.gc();
-      logger.debug('RemoveBg', `执行垃圾回收 ${inputOptions.uid}`, { uid: inputOptions.uid });
+      logger.debug('RemoveBg', `Execute garbage collection ${inputOptions.uid}`, { uid: inputOptions.uid });
     }
     
-    logMemoryUsage(inputOptions.uid, '图像处理后');
+    logMemoryUsage(inputOptions.uid, 'Image processing after');
     
-    logger.info('RemoveBg', `图像读取完成 ${inputOptions.uid}`, { 
+    logger.info('RemoveBg', `Image read complete ${inputOptions.uid}`, { 
       uid: inputOptions.uid,
       width,
       height,
@@ -1131,7 +1132,7 @@ async function removeBg(
 
     // 3. 检查通道数
     if (channels !== 3) {
-        logger.warn('RemoveBg', `通道数异常 ${inputOptions.uid}`, { 
+        logger.warn('RemoveBg', `Abnormal channel count detected ${inputOptions.uid}`, { 
           uid: inputOptions.uid,
           expected: 3,
           actual: channels 
@@ -1139,13 +1140,13 @@ async function removeBg(
     }
     
     // 5. 数据预处理
-    logger.info('RemoveBg', `开始预处理图像数据 ${inputOptions.uid}`, { 
+    logger.info('RemoveBg', `Data preprocessing started ${inputOptions.uid}`, { 
       uid: inputOptions.uid,
       dataSize: data.length,
       targetChannels: 3
     });
     
-    logMemoryUsage(inputOptions.uid, '预处理前');
+    logMemoryUsage(inputOptions.uid, 'Preprocessing before');
     
     // 优化的数据预处理 - 减少内存分配
     const floatArr = new Float32Array(width * height * 3);
@@ -1203,12 +1204,12 @@ async function removeBg(
         preferNHWC = dims[3] === 3; // 最后一维是3则为NHWC
       }
     } catch (e) {
-      logger.debug('RemoveBg', `读取输入元数据失败 ${inputOptions.uid}`, { uid: inputOptions.uid, error: e.message });
+      logger.debug('RemoveBg', `Input metadata failed ${inputOptions.uid}`, { uid: inputOptions.uid, error: e.message });
     }
     
     // 7. ONNX推理
-    logMemoryUsage(inputOptions.uid, '推理前');
-    logger.info('RemoveBg', `开始ONNX推理 ${inputOptions.uid}`, { 
+    logMemoryUsage(inputOptions.uid, 'Inference before');
+    logger.info('RemoveBg', `ONNX inference started ${inputOptions.uid}`, { 
       uid: inputOptions.uid, 
       preferredLayout: preferNHWC ? 'NHWC' : 'NCHW',
       inputName: feedInputName
@@ -1225,13 +1226,13 @@ async function removeBg(
       results = await session.run(feeds);
       inferenceSuccess = true;
       
-      logger.info('RemoveBg', `ONNX推理成功 ${inputOptions.uid}`, { 
+      logger.info('RemoveBg', `Inference successful with preferred format ${inputOptions.uid}`, { 
         uid: inputOptions.uid, 
         layout: preferNHWC ? 'NHWC' : 'NCHW',
         inferenceTime: Date.now() - inferenceStartTime
       });
     } catch (firstError) {
-      logger.warn('RemoveBg', `首选格式推理失败，尝试备选格式 ${inputOptions.uid}`, { 
+      logger.warn('RemoveBg', `Preferred format failed, trying alternative ${inputOptions.uid}`, { 
         uid: inputOptions.uid,
         error: firstError.message 
       });
@@ -1243,13 +1244,13 @@ async function removeBg(
         results = await session.run(feeds);
         inferenceSuccess = true;
         
-        logger.info('RemoveBg', `备选格式推理成功 ${inputOptions.uid}`, { 
+        logger.info('RemoveBg', `Inference successful with alternative format ${inputOptions.uid}`, { 
           uid: inputOptions.uid, 
           fallbackLayout: preferNHWC ? 'NCHW' : 'NHWC',
           inferenceTime: Date.now() - inferenceStartTime
         });
       } catch (secondError) {
-        logger.error('RemoveBg', `所有格式推理失败 ${inputOptions.uid}`, { 
+        logger.error('RemoveBg', `All input formats failed ${inputOptions.uid}`, { 
           uid: inputOptions.uid,
           firstError: firstError.message,
           secondError: secondError.message
@@ -1259,10 +1260,10 @@ async function removeBg(
     }
     
     if (!inferenceSuccess) {
-      throw new Error('ONNX推理失败：无法识别正确的输入格式');
+      throw new Error('Inference failed with all input formats');
     }
     
-    logMemoryUsage(inputOptions.uid, '推理后');
+    logMemoryUsage(inputOptions.uid, 'Inference after');
     const outNames: string[] = (session as any).outputNames || Object.keys(results) || [];
     const outName = outNames[0];
     let outTensor: any = outName ? results[outName] : undefined;
@@ -1271,15 +1272,15 @@ async function removeBg(
       outTensor = values && values.length > 0 ? values[0] : undefined;
     }
     if (!outTensor) {
-      throw new Error('ONNX 推理未返回任何输出张量');
+      throw new Error('No output tensor found in inference results');
     }
     // 8. 后处理
-    logger.info('RemoveBg', `开始后处理 ${inputOptions.uid}`, { 
+    logger.info('RemoveBg', `Post-processing started ${inputOptions.uid}`, { 
       uid: inputOptions.uid,
       modelSize: { width, height },
       originalSize: { width: originalWidth, height: originalHeight }
     });
-    logMemoryUsage(inputOptions.uid, '后处理前');
+    logMemoryUsage(inputOptions.uid, 'Post-processing before');
 
     const isRmbgModel = /(^|-)rmbg-?1\.4/i.test(filename) || /bria/i.test(options.license || '');
 
@@ -1307,7 +1308,7 @@ async function removeBg(
     } else {
       // 通用路径：提取并归一化掩码，适用其他模型
       const predMaskResized = await extractMaskResized(outTensor, width, height);
-      logger.info('RemoveBg', `掩码提取完成 ${inputOptions.uid}`, { 
+      logger.info('RemoveBg', `Mask extraction complete ${inputOptions.uid}`, { 
         uid: inputOptions.uid,
         maskSize: predMaskResized.length,
         maskDimensions: { width, height }
@@ -1336,14 +1337,17 @@ async function removeBg(
     //  .toFile(outputPath);
       
     // console.log(`Image saved to ${outputPath}`);
-    console.log('保存抠图结果')
+    logger.info('RemoveBg', `Save cutout result ${inputOptions.uid}`, { 
+      uid: inputOptions.uid,
+      outputPath
+    });
     
     // 创建Sharp实例用于最终输出
     let finalImage = sharp(cutoutBuffer, { raw: { width: width, height: height, channels: 4 } });
 
     // 恢复到原始尺寸与比例：按 contain 缩放反推有效区域，先裁剪再缩放
     if (originalWidth !== width || originalHeight !== height) {
-      logger.info('RemoveBg', `恢复原始尺寸 ${inputOptions.uid}`, { 
+      logger.info('RemoveBg', `Restoring to original size ${inputOptions.uid}`, { 
         uid: inputOptions.uid,
         fromSize: { width, height },
         toSize: { width: originalWidth, height: originalHeight }
@@ -1385,14 +1389,14 @@ async function removeBg(
       await processedFormat.toFile(outputPath);
     }
     
-    logMemoryUsage(inputOptions.uid, '保存完成');
+    logMemoryUsage(inputOptions.uid, 'Save completed');
 
     // 10. 最终处理和清理
     const processTime = Date.now() - startTime;
     const stats = fs.statSync(outputPath);
     const fileSizeInBytes = stats.size;
     
-    logger.info('RemoveBg', `抠图任务完成 ${inputOptions.uid}`, { 
+    logger.info('RemoveBg', `Background removal task completed ${inputOptions.uid}`, { 
       uid: inputOptions.uid,
       outputPath,
       fileSize: fileSizeInBytes,
@@ -1419,11 +1423,11 @@ async function removeBg(
       // 强制垃圾回收
       if (global.gc) {
         global.gc();
-        logger.debug('RemoveBg', `执行最终垃圾回收 ${inputOptions.uid}`, { uid: inputOptions.uid });
+        logger.debug('RemoveBg', `Execute final garbage collection ${inputOptions.uid}`, { uid: inputOptions.uid });
       }
     }
     
-    logMemoryUsage(inputOptions.uid, '任务完成');
+    logMemoryUsage(inputOptions.uid, 'Task completed');
     
     // 返回与实际格式匹配的 base64 MIME
     const mime = outputFormat === 'jpg' ? 'jpeg' : outputFormat;
@@ -1448,7 +1452,7 @@ async function removeBg(
 
   } catch (e) {
     const errorTime = Date.now() - startTime;
-    logger.error('RemoveBg', `抠图任务失败 ${inputOptions.uid}`, {
+    logger.error('RemoveBg', `Background removal task failed ${inputOptions.uid}`, {
       uid: inputOptions.uid,
       model: inputOptions.model,
       outputFormat: inputOptions.outputformat,

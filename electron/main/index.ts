@@ -94,7 +94,7 @@ const indexHtml = path.join(RENDERER_DIST, "index.html");
 
 async function createWindow() {
   win = new BrowserWindow({
-    title: "Main window",
+    title: "Jevet",
     width: 900,
     height: 670,
     icon: path.join(PUBLIC_DIR, "favicon.ico"),
@@ -132,7 +132,7 @@ async function createWindow() {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   const configPath = setupConfig();
   // 设置原生主题
   setupNativeTheme();
@@ -141,7 +141,7 @@ app.whenReady().then(() => {
 
   // 设置所有 IPC 处理程序
   // 首先初始化日志系统
-  logger.info('Main', 'Electron主进程启动', {
+  logger.info('Main', 'Electron Main Process', {
     platform: process.platform,
     arch: process.arch,
     nodeVersion: process.version,
@@ -152,7 +152,7 @@ app.whenReady().then(() => {
   setupLoggerHandlers();
   setupWindowHandlers(preload, indexHtml);
   setupFileHandlers();
-  setupImageHandlers();
+  await setupImageHandlers(); // 现在是异步函数
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
