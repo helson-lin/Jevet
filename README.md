@@ -13,7 +13,7 @@
 
 内置多种AI模型管理与推理优化选项，开箱即用
 
-[English](#english-version) | [中文](#中文版本)
+[English](README.en.md) | [中文](README.md)
 
 </div>
 
@@ -311,31 +311,7 @@ npm run sharp:mac
 
 ## 📄 许可证
 
-本项目基于 [MIT 许可证](LICENSE) 开源。
-
-```
-MIT License
-
-Copyright (c) 2024 Helson Lin
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
+本项目以 [AGPL-3.0](LICENSE) 协议开源。若您修改并通过网络向用户提供本软件（例如作为服务在线提供），需向该网络服务的用户开放对应版本的完整源代码及您的改动。
 
 ## 🙏 致谢
 
@@ -362,13 +338,6 @@ SOFTWARE.
 
 ---
 
-# English Version
+## 捐助
 
-*Coming soon... We're working on the English version of this README. For now, you can use translation tools or check the application's built-in English interface.*
-
-## 📞 Contact
-
-- **Project Repository**: https://github.com/helson-lin/Jevet
-- **Issues & Discussions**: https://github.com/helson-lin/Jevet/issues
-- **Developer**: [@helson-lin](https://github.com/helson-lin)
-
+![Donate](./spon.jpg)
