@@ -45,7 +45,7 @@
     "logs:path": "echo \"日志文件路径: %APPDATA%/Jevet/logs (Windows) 或 ~/Library/Application Support/Jevet/logs (Mac)\""
   },
   "devDependencies": {
-    "@electron/fuses": "^1.8.0",
+    "@electron/fuses": "^2.0.0",
     "@electron/rebuild": "^3.7.2",
     "@vitejs/plugin-vue": "^5.0.4",
     "del-cli": "^6.0.0",
