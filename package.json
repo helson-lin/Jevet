@@ -58,7 +58,7 @@
     "vite-plugin-electron-renderer": "^0.14.5",
     "vue": "^3.4.21",
     "vue-router": "^4.5.0",
-    "vue-tsc": "^2.0.6"
+    "vue-tsc": "^3.1.0"
   },
   "dependencies": {
     "@icon-park/vue-next": "^1.4.2",
